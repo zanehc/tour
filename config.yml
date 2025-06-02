@@ -1,0 +1,185 @@
+# GitHub Pages 설정
+title: "한국 트렌드 관광지 & 맛집 지도"
+description: "한국관광공사 TourAPI를 활용한 실시간 핫플레이스와 맛집 트렌드 시각화 서비스"
+url: "https://your-username.github.io"
+baseurl: "/korea-trend-map"
+
+# 사이트 정보
+author: 
+  name: "Your Name"
+  email: "your-email@example.com"
+  bio: "트렌드 데이터 시각화 개발자"
+
+# SEO 및 소셜 미디어
+lang: ko
+timezone: Asia/Seoul
+keywords: 
+  - 한국관광
+  - 트렌드 맛집
+  - 데이터시각화
+  - 지도서비스
+  - TourAPI
+  - 관광통계
+  - 핫플레이스
+  - 실시간 트렌드
+
+# GitHub Pages 테마
+theme: minima
+remote_theme: pages-themes/minimal@v0.2.0
+
+# 플러그인
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-default-layout
+  - jekyll-titles-from-headings
+
+# 네비게이션
+navigation:
+  - title: "홈"
+    url: "/"
+  - title: "API 가이드"  
+    url: "/docs/API_GUIDE"
+  - title: "배포 가이드"
+    url: "/docs/DEPLOYMENT_GUIDE"
+  - title: "GitHub"
+    url: "https://github.com/your-username/korea-trend-map"
+
+# 소셜 미디어 링크
+social_links:
+  - platform: github
+    user_url: "https://github.com/your-username"
+  - platform: twitter
+    user_url: "https://twitter.com/your-twitter"
+  - platform: linkedin
+    user_url: "https://linkedin.com/in/your-linkedin"
+
+# 사이트 설정
+show_excerpts: true
+paginate: 5
+future: true
+
+# 보안 설정
+enforce_ssl: true
+
+# 제외할 파일들
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor/bundle/
+  - vendor/cache/
+  - vendor/gems/
+  - vendor/ruby/
+  - README_DEV.md
+  - package.json
+  - package-lock.json
+  - .gitignore
+  - .git/
+
+# 포함할 파일들
+include:
+  - _pages
+  - assets
+  - docs
+
+# 마크다운 설정
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: 'highlight'
+    span:
+      line_numbers: false
+    block:
+      line_numbers: true
+
+# 압축 설정
+sass:
+  style: compressed
+
+# SEO 태그 설정
+twitter:
+  username: your_twitter
+  card: summary_large_image
+
+# Open Graph 기본값
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+      image: "/assets/images/og-image.png"
+  - scope:
+      path: "docs"
+      type: "pages"  
+    values:
+      layout: "default"
+      sidebar: true
+
+# Google Analytics (선택사항)
+google_analytics: "GA_MEASUREMENT_ID"
+
+# 사이트 통계
+statistics:
+  enabled: true
+  provider: "google_analytics"
+
+# 댓글 시스템 (선택사항)
+comments:
+  provider: "disqus"
+  disqus:
+    shortname: "your-disqus-shortname"
+
+# 검색 설정
+search: true
+search_provider: lunr
+
+# 피드 설정
+feed:
+  posts_limit: 20
+  excerpt_only: true
+
+# 컬렉션 설정 (필요시)
+collections:
+  guides:
+    output: true
+    permalink: /:collection/:name/
+
+# 프로덕션 환경 설정
+environment: production
+
+# API 관련 설정 (환경변수로 관리 권장)
+api:
+  tour_api:
+    base_url: "http://apis.data.go.kr/B551011/KorService1/"
+    rate_limit: 1000
+    timeout: 30
+
+# 지도 설정
+map:
+  default_center: [36.5, 127.5]
+  default_zoom: 7
+  max_zoom: 18
+  tile_provider: "OpenStreetMap"
+
+# 캐시 설정
+cache:
+  enabled: true
+  duration: 3600  # 1시간
+
+# 트렌드 분석 설정
+trends:
+  update_interval: 3600  # 1시간마다 업데이트
+  top_count: 5
+  categories:
+    - tourist
+    - restaurant  
+    - accommodation
+    - festival

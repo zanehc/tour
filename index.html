@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>한국 트렌드 관광지 & 맛집 지도</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* 헤더 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* 메인 컨테이너 */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            padding-top: 60px;
+        }
+        
+        /* 지도 컨테이너 */
+        .map-container {
+            flex: 1;
+            position: relative;
+            min-height: 400px;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            background-color: #f0f0f0;
+        }
+        
+        /* 사이드바 패널 */
+        .sidebar {
+            width: 380px;
+            background: white;
+            border-left: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* 컨트롤 패널 */
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-bottom: 1px solid #e1e5e9;
+            flex-shrink: 0;
+        }
+        
+        .control-section {
+            margin-bottom: 15px;
+        }
+        
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #555;
+            text-transform: uppercase;
+        }
+        
+        .control-section select,
+        .control-section input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .control-section select:focus,
+        .control-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .filter-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .filter-tab {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            padding: 10px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 12px;
+            text-align: center;
+            transition: all 0.3s;
+            color: #666;
+        }
+        
+        .filter-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .filter-tab i {
+            margin-right: 5px;
+        }
+        
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 정보 패널 영역 */
+        .info-panels {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .info-card h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-card h3 i {
+            color: #667eea;
+        }
+        
+        /* 범례 */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+        
+        /* 통계 */
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f3f4;
+            font-size: 13px;
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-item .label {
+            color: #666;
+        }
+        
+        .summary-item .value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        /* 트렌드 리스트 */
+        .trend-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f3f4;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .trend-item:hover {
+            background-color: #f8f9fa;
+            margin: 0 -10px;
+            padding-left: 10px;
+            padding-right: 10px;
+            border-radius: 6px;
+        }
+        
+        .trend-item:last-child {
+            border-bottom: none;
+        }
+        
+        .trend-rank {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .trend-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .trend-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 13px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .trend-category {
+            font-size: 11px;
+            color: #666;
+        }
+        
+        /* 플로팅 메시지 */
+        .floating-message {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            max-width: 500px;
+            border-radius: 8px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .floating-message button {
+            margin: 5px;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .loading {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+        
+        .loading i {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c66;
+        }
+        
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #6c6;
+        }
+        
+        /* 위치 버튼 (모바일용) */
+        .location-btn {
+            display: none; /* 기본적으로 숨김, 모바일에서만 표시 */
+            position: fixed;
+            bottom: 20px; /* 위치 변경: top -> bottom */
+            left: 10px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+        
+        .location-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .location-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 토글 버튼 (모바일용) */
+        .sidebar-toggle {
+            display: none; /* 기본적으로 숨김, 모바일에서만 표시 */
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            z-index: 1001; /* 사이드바보다 위에 오도록 z-index 조정 */
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                position: fixed;
+                top: 60px;
+                right: -380px; /* 기본적으로 숨김 */
+                bottom: 0;
+                width: 320px;
+                z-index: 1000;
+                transition: right 0.3s ease;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            }
+            
+            .sidebar.open {
+                right: 0; /* 열릴 때 오른쪽으로 나타남 */
+            }
+            
+            .sidebar-toggle {
+                display: block; /* 모바일에서 표시 */
+            }
+            
+            .location-btn {
+                display: block; /* 모바일에서 표시 */
+            }
+            
+            .filter-tabs {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .map-container {
+                height: 100vh; /* 모바일에서는 지도가 전체 높이 차지 */
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .sidebar {
+                width: 280px;
+                right: -280px;
+            }
+            
+            .filter-tabs {
+                grid-template-columns: 1fr; /* 더 작은 화면에서는 1열로 */
+                gap: 5px;
+            }
+            
+            .filter-tab {
+                padding: 8px;
+                font-size: 11px;
+            }
+        }
+        
+        /* 사용자 정의 스크롤바 */
+        .info-panels::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .info-panels::-webkit-scrollbar-track {
+            background: #f1f3f4;
+            border-radius: 3px;
+        }
+        
+        .info-panels::-webkit-scrollbar-thumb {
+            background: #c1c8cd;
+            border-radius: 3px;
+        }
+        
+        .info-panels::-webkit-scrollbar-thumb:hover {
+            background: #a8b2b9;
+        }
+
+        /* 디버그 패널 */
+        .debug-panel {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 11px;
+            color: #666;
+        }
+
+        .debug-panel pre {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><i class="fas fa-fire"></i> 한국 트렌드 관광지 & 맛집 지도</h1>
+    </div>
+    
+    <div class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </div>
+    
+    <button class="location-btn" onclick="moveToMyLocation()" title="내 위치로 이동">
+        <i class="fas fa-location-arrow"></i>
+    </button>
+    
+    <div class="main-container">
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <div class="sidebar" id="sidebar">
+            <div class="control-panel">
+                <div class="filter-tabs">
+                    <button class="filter-tab active" data-type="tourist">
+                        <i class="fas fa-mountain"></i> 관광지
+                    </button>
+                    <button class="filter-tab" data-type="restaurant">
+                        <i class="fas fa-utensils"></i> 맛집
+                    </button>
+                    <button class="filter-tab" data-type="accommodation">
+                        <i class="fas fa-bed"></i> 숙박
+                    </button>
+                    <button class="filter-tab" data-type="festival">
+                        <i class="fas fa-calendar-alt"></i> 축제
+                    </button>
+                </div>
+                
+                <div class="control-section">
+                    <label for="regionCode">지역 선택</label>
+                    <select id="regionCode">
+                        <option value="">전국</option>
+                        <option value="1">서울특별시</option>
+                        <option value="2">인천광역시</option>
+                        <option value="3">대전광역시</option>
+                        <option value="4">대구광역시</option>
+                        <option value="5">광주광역시</option>
+                        <option value="6">부산광역시</option>
+                        <option value="7">울산광역시</option>
+                        <option value="8">세종특별자치시</option>
+                        <option value="31">경기도</option>
+                        <option value="32">강원특별자치도</option>
+                        <option value="33">충청북도</option>
+                        <option value="34">충청남도</option>
+                        <option value="35">경상북도</option>
+                        <option value="36">경상남도</option>
+                        <option value="37">전라북도</option>
+                        <option value="38">전라남도</option>
+                        <option value="39">제주특별자치도</option>
+                    </select>
+                </div>
+                
+                <div class="control-section">
+                    <label for="categoryFilter">카테고리</label>
+                    <select id="categoryFilter">
+                        <option value="">전체</option>
+                    </select>
+                </div>
+                
+                <div class="control-section">
+                    <label for="sortBy">정렬 기준</label>
+                    <select id="sortBy">
+                        <option value="readcount">조회수순</option>
+                        <option value="distance">거리순</option>
+                        <option value="title">이름순</option>
+                    </select>
+                </div>
+                
+                <div class="control-section">
+                    <button class="btn" onclick="loadTrendData()">
+                        <i class="fas fa-search"></i> 트렌드 검색
+                    </button>
+                </div>
+            </div>
+            
+            <div class="info-panels">
+                <div class="info-card">
+                    <h3><i class="fas fa-palette"></i> 범례</h3>
+                    <div id="legendContent">
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background-color: #e74c3c;">
+                                <i class="fas fa-mountain"></i>
+                            </div>
+                            <span>관광지</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background-color: #f39c12;">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                            <span>맛집</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background-color: #3498db;">
+                                <i class="fas fa-bed"></i>
+                            </div>
+                            <span>숙박시설</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-icon" style="background-color: #9b59b6;">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <span>축제/행사</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3><i class="fas fa-chart-bar"></i> 현황 요약</h3>
+                    <div id="summaryContent">
+                        <div class="summary-item">
+                            <span class="label">총 장소 수</span>
+                            <span class="value" id="totalCount">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">현재 카테고리</span>
+                            <span class="value" id="currentCategory">전체</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">평균 조회수</span>
+                            <span class="value" id="avgViews">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">최고 인기 장소</span>
+                            <span class="value" id="topPlace">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <h3><i class="fas fa-fire"></i> 인기 트렌드 TOP 5</h3>
+                    <div id="trendContent">
+                        <div style="text-align: center; color: #666; padding: 20px; font-size: 13px;">
+                            트렌드 검색을 실행하면<br>인기 장소들이 표시됩니다
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card" id="debugCard" style="display: none;">
+                    <h3><i class="fas fa-bug"></i> 디버그 정보</h3>
+                    <div id="debugContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // API 설정 (실제 API 키로 교체하세요)
+        const API_KEY = 'cpxewJsMcKvPuB8ZJM2NbAAS6pvEzF8TonrUtkC5IfZtoJxmkvxS3Qo44VkvKsOojM%2FfTSkVvL0LVHMne15q7g%3D%3D'; // 여기에 실제 API 키를 입력하세요!!!
+        const BASE_URL = 'https://apis.data.go.kr/B551011/KorService1/';
+        
+        // CORS 우회용 프록시 서버들 (각 프록시의 URL 구성 방식에 맞게 설정)
+        const CORS_PROXIES = [
+            { prefix: 'https://api.allorigins.win/raw?url=', needsEncoding: true }, // URL 인코딩 필요
+            { prefix: 'https://corsproxy.io/?', needsEncoding: false },          // URL 인코딩 불필요
+            { prefix: '', needsEncoding: false } // 직접 연결 (인코딩 불필요)
+        ];
+        
+        // 전역 변수
+        let map;
+        let markersLayer;
+        let currentData = [];
+        let currentType = 'tourist';
+        let currentProxyInfo = CORS_PROXIES[0]; // 기본 프록시 정보
+        let debugMode = false; // 디버그 모드
+        
+        // API 엔드포인트 및 카테고리 정의 (기존과 동일)
+        const API_ENDPOINTS = {
+            tourist: {
+                url: 'areaBasedList1',
+                contentTypeId: '12',
+                categories: { 'A01': '자연관광지', 'A02': '문화관광지', 'A03': '레포츠관광지', 'A04': '쇼핑관광지', 'A05': '음식관광지'}
+            },
+            restaurant: {
+                url: 'areaBasedList1',
+                contentTypeId: '39',
+                categories: { 'A05010100': '구이류', 'A05010200': '국수류', 'A05010300': '국/탕류', 'A05010400': '닭요리', 'A05010500': '족발/보쌈', 'A05010600': '한정식', 'A05010700': '죽류', 'A05010800': '찌개류', 'A05010900': '찜류', 'A05011000': '회류', 'A05020100': '일식', 'A05020200': '중식', 'A05020300': '경양식', 'A05020400': '패스트푸드', 'A05020500': '카페/디저트', 'A05020600': '이색음식점'}
+            },
+            accommodation: {
+                url: 'areaBasedList1',
+                contentTypeId: '32',
+                categories: { 'B02010100': '호텔', 'B02010200': '콘도미니엄', 'B02010300': '유스호스텔', 'B02010400': '펜션', 'B02010500': '민박', 'B02010600': '모텔', 'B02010700': '게스트하우스', 'B02010900': '한옥'}
+            },
+            festival: {
+                url: 'searchFestival1',
+                contentTypeId: '15',
+                categories: { 'A02080100': '문화관광축제', 'A02080200': '일반축제', 'A02080300': '전통공연', 'A02080400': '연극', 'A02080500': '뮤지컬', 'A02080600': '오페라', 'A02080700': '전시회', 'A02080800': '박람회', 'A02081400': '스포츠경기'}
+            }
+        };
+        
+        // 디버그 로그 함수 (기존과 동일)
+        function debugLog(message, data = null, level = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            
+            if (level === 'error') { console.error(logMessage, data); }
+            else if (level === 'warn') { console.warn(logMessage, data); }
+            else { console.log(logMessage, data); }
+            
+            if (debugMode) { updateDebugPanel(logMessage, data); }
+        }
+        
+        // 디버그 패널 업데이트 (기존과 동일)
+        function updateDebugPanel(message, data = null) {
+            const debugCard = document.getElementById('debugCard');
+            const debugContent = document.getElementById('debugContent');
+            debugCard.style.display = 'block';
+            const logEntry = document.createElement('div');
+            logEntry.className = 'debug-panel';
+            logEntry.innerHTML = `<div>${message}</div>${data ? `<pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>` : ''}`;
+            debugContent.appendChild(logEntry);
+            while (debugContent.children.length > 5) { debugContent.removeChild(debugContent.firstChild); }
+        }
+        
+        // 지도 초기화 (기존과 동일하나, 에러 핸들링 강화)
+        function initializeMap() {
+            debugLog('🗺️ 지도 초기화 시작...');
+            if (typeof L === 'undefined') {
+                debugLog('❌ Leaflet 라이브러리가 로드되지 않았습니다', null, 'error');
+                showFloatingMessage('지도 라이브러리 로딩 실패. 페이지를 새로고침해 주세요.', 'error');
+                return false;
+            }
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                debugLog('❌ 지도 컨테이너를 찾을 수 없습니다', null, 'error');
+                showFloatingMessage('지도 컨테이너를 찾을 수 없습니다.', 'error');
+                return false;
+            }
+            debugLog('✅ 지도 컨테이너 크기', { width: mapElement.offsetWidth, height: mapElement.offsetHeight });
+            try {
+                if (map) { map.remove(); debugLog('🗑️ 기존 지도 인스턴스 제거'); }
+                map = L.map('map');
+                debugLog('✅ 지도 객체 생성 성공');
+                map.setView([36.5, 127.5], 7);
+                debugLog('✅ 초기 뷰 설정 완료');
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors', maxZoom: 18, minZoom: 5
+                }).addTo(map);
+                debugLog('✅ 타일 레이어 추가 성공');
+                markersLayer = L.layerGroup().addTo(map);
+                debugLog('✅ 마커 레이어 그룹 생성 성공');
+                setTimeout(() => { if (map) { map.invalidateSize(); debugLog('✅ 지도 크기 재조정 완료'); } }, 200);
+                return true;
+            } catch (error) {
+                debugLog('❌ 지도 생성 중 에러', { error: error.message }, 'error');
+                showFloatingMessage('지도 생성 실패: ' + error.message, 'error');
+                return false;
+            }
+        }
+        
+        // 현재 년월 설정 (기존과 동일)
+        function getCurrentYearMonth() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            return `${year}${month}`;
+        }
+        
+        // 마커 스타일 및 아이콘 결정 (기존과 동일)
+        function getMarkerConfig(type, readcount = 0) {
+            const configs = {
+                tourist: { color: '#e74c3c', icon: 'fa-mountain' },
+                restaurant: { color: '#f39c12', icon: 'fa-utensils' },
+                accommodation: { color: '#3498db', icon: 'fa-bed' },
+                festival: { color: '#9b59b6', icon: 'fa-calendar-alt' }
+            };
+            const config = configs[type] || configs.tourist;
+            let radius = 8;
+            if (readcount > 10000) radius = 15;
+            else if (readcount > 5000) radius = 12;
+            else if (readcount > 1000) radius = 10;
+            return { ...config, radius };
+        }
+        
+        // 카테고리 옵션 업데이트 (기존과 동일)
+        function updateCategoryOptions() {
+            const categorySelect = document.getElementById('categoryFilter');
+            const categories = API_ENDPOINTS[currentType].categories;
+            categorySelect.innerHTML = '<option value="">전체</option>';
+            Object.entries(categories).forEach(([code, name]) => {
+                const option = document.createElement('option');
+                option.value = code; option.textContent = name;
+                categorySelect.appendChild(option);
+            });
+        }
+        
+        // 탭 변경 처리 (기존과 동일)
+        function handleTabChange(event) {
+            if (event.target.classList.contains('filter-tab')) {
+                document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
+                event.target.classList.add('active');
+                currentType = event.target.dataset.type;
+                updateCategoryOptions();
+                debugLog('🔄 카테고리 변경', { type: currentType });
+            }
+        }
+        
+        // API 호출 (CORS 프록시 URL 구성 방식 수정)
+        async function fetchTrendData() {
+            const regionCode = document.getElementById('regionCode').value;
+            const categoryCode = document.getElementById('categoryFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+            
+            debugLog('🔄 API 호출 시작', { regionCode, categoryCode, sortBy, currentType });
+            
+            const endpoint = API_ENDPOINTS[currentType];
+            const currentYearMonth = getCurrentYearMonth();
+            
+            if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
+                throw new Error('API 키가 설정되지 않았습니다. YOUR_API_KEY_HERE를 실제 API 키로 교체하세요.');
+            }
+            
+            const encodedAPIKey = encodeURIComponent(API_KEY); // API 키는 일반적으로 인코딩된 상태로 전송
+            
+            const params = new URLSearchParams({
+                serviceKey: encodedAPIKey, // 인코딩된 API 키 사용
+                numOfRows: 50, pageNo: 1, MobileOS: 'ETC', MobileApp: 'TrendMapService',
+                _type: 'json', arrange: sortBy, contentTypeId: endpoint.contentTypeId
+            });
+
+            if (regionCode && regionCode.trim() !== '') { params.append('areaCode', regionCode); }
+            if (categoryCode && categoryCode.trim() !== '') {
+                if (currentType !== 'festival') {
+                    if (categoryCode.length >= 3) { params.append('cat1', categoryCode.substring(0, 3)); }
+                    if (categoryCode.length >= 5) { params.append('cat2', categoryCode.substring(0, 5)); }
+                    if (categoryCode.length > 5) { params.append('cat3', categoryCode); }
+                } else {
+                    params.append('cat1', categoryCode.substring(0, 3));
+                    if (categoryCode.length > 3) { params.append('cat2', categoryCode.substring(0, 5)); }
+                }
+            }
+            if (currentType === 'festival') {
+                params.append('eventStartDate', currentYearMonth + '01');
+                params.append('eventEndDate', currentYearMonth + '31');
+            }
+            
+            const baseUrl = `${BASE_URL}${endpoint.url}`;
+            const queryString = params.toString();
+            const originalUrl = `${baseUrl}?${queryString}`;
+
+            debugLog('🔗 API 원본 요청 URL (키 제외)', { url: originalUrl.replace(encodedAPIKey, '***API_KEY***') });
+            
+            let lastError = null;
+            
+            for (let i = 0; i < CORS_PROXIES.length; i++) {
+                currentProxyInfo = CORS_PROXIES[i];
+                const proxyPrefix = currentProxyInfo.prefix;
+                const needsEncoding = currentProxyInfo.needsEncoding;
+                
+                const targetUrl = needsEncoding ? encodeURIComponent(originalUrl) : originalUrl;
+                const finalUrl = proxyPrefix ? proxyPrefix + targetUrl : originalUrl;
+                                
+                try {
+                    debugLog(`🔄 연결 시도 ${i + 1}/${CORS_PROXIES.length} (${proxyPrefix || '직접 연결'})`, { finalUrl: finalUrl.replace(encodedAPIKey, '***API_KEY***') });
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+                    
+                    const response = await fetch(finalUrl, {
+                        method: 'GET', headers: { 'Accept': 'application/json' },
+                        mode: 'cors', signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    
+                    debugLog('📡 응답 상태', { status: response.status, statusText: response.statusText, proxy: proxyPrefix });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText} (프록시: ${proxyPrefix || '없음'})`);
+                    }
+                    
+                    const responseText = await response.text();
+                    debugLog('📄 응답 텍스트 길이', { length: responseText.length });
+                    if (!responseText || responseText.trim() === '') {
+                        throw new Error('서버에서 빈 응답을 받았습니다');
+                    }
+                    
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                        debugLog('📊 JSON 파싱 성공', { hasResponse: !!data.response, proxy: proxyPrefix });
+                    } catch (jsonError) {
+                        debugLog(`JSON 파싱 실패 (시도 ${i + 1}, 프록시: ${proxyPrefix || '없음'})`, { 
+                            error: jsonError.message, responsePreview: responseText.substring(0, 200)
+                        }, 'error');
+                        if (responseText.toLowerCase().includes('<html>') || responseText.toLowerCase().includes('<!doctype')) {
+                            throw new Error('HTML 응답을 받았습니다 (CORS 또는 API 오류 가능성). 프록시: ' + (proxyPrefix || '없음'));
+                        }
+                        throw new Error(`JSON 파싱 실패: ${jsonError.message}. 프록시: ${proxyPrefix || '없음'}`);
+                    }
+                    
+                    const validatedData = validateAndExtractData(data);
+                    if (validatedData === null) { // validateAndExtractData 내부에서 에러 발생 시 null 반환
+                         // 이미 validateAndExtractData에서 에러를 throw하므로, 여기서는 그 에러를 잡게 됨.
+                         // 만약 validateAndExtractData가 API 에러(resultCode != 0000)를 throw하면 여기서 잡힘.
+                        throw new Error('API 응답 데이터 검증 실패 또는 API 내부 오류');
+                    }
+                    
+                    debugLog('✅ API 호출 성공', { dataCount: validatedData.length, usedProxy: proxyPrefix });
+                    return validatedData;
+                    
+                } catch (error) {
+                    lastError = error;
+                    debugLog(`연결 시도 ${i + 1} 실패 (프록시: ${proxyPrefix || '없음'})`, { error: error.message, name: error.name }, 'error');
+                    if (error.name === 'AbortError') { debugLog('요청 타임아웃 발생', null, 'error'); }
+                    if (i < CORS_PROXIES.length - 1) { continue; }
+                }
+            }
+            const errorMessage = lastError ? lastError.message : '알 수 없는 오류';
+            throw new Error(`모든 연결 시도가 실패했습니다. 마지막 오류: ${errorMessage}`);
+        }
+
+        // API 응답 데이터 검증 및 추출 (기존과 동일, 에러 메시지 강화)
+        function validateAndExtractData(data) {
+            try {
+                if (!data || typeof data !== 'object') { throw new Error('응답 데이터가 유효하지 않음'); }
+                if (!data.response) { throw new Error('응답에 response 객체가 없음'); }
+                if (!data.response.header) { throw new Error('응답에 header가 없음'); }
+                
+                const resultCode = data.response.header.resultCode;
+                const resultMsg = data.response.header.resultMsg;
+                
+                if (resultCode !== '0000') {
+                    debugLog('❌ API 에러', { resultCode, resultMsg, data }, 'error');
+                    //LIMITED NUMBER OF SERVICE REQUESTS EXCEEDS ERROR인지 확인
+                    if(resultCode === '22' || resultMsg.toUpperCase().includes("LIMITED NUMBER OF SERVICE REQUESTS EXCEEDS")){
+                         throw new Error(`API 에러 (${resultCode}): ${resultMsg}. 일일 트래픽 허용량을 초과했을 수 있습니다.`);
+                    }
+                    throw new Error(`API 에러 (${resultCode}): ${resultMsg}`);
+                }
+                
+                const body = data.response.body;
+                if (!body) { debugLog('⚠️ 응답에 body가 없습니다 (정상이나 데이터 없음)', null, 'warn'); return []; }
+                const items = body.items;
+                if (!items || (typeof items === 'object' && !items.item && body.totalCount === 0)) { 
+                    debugLog('⚠️ 응답에 items가 없거나 비어있습니다 (정상이나 데이터 없음)', {body}, 'warn'); return []; 
+                }
+                
+                let resultArray = [];
+                if (items && items.item) {
+                    resultArray = Array.isArray(items.item) ? items.item : [items.item];
+                } else if (Array.isArray(items)) { // 드물지만 items 자체가 배열일 경우
+                     resultArray = items;
+                } else if (body.totalCount > 0 && !items.item){
+                    debugLog('⚠️ totalCount는 있으나 item이 없는 경우', {items}, 'warn');
+                    return [];
+                }
+
+                const validData = resultArray.filter(item => item && typeof item === 'object' && item.title && typeof item.title === 'string');
+                debugLog('✅ 데이터 추출 완료', { total: resultArray.length, valid: validData.length });
+                return validData;
+            } catch (error) {
+                debugLog('❌ 데이터 검증/추출 중 오류', { error: error.message, originalData: data }, 'error');
+                // validateAndExtractData에서 발생한 에러를 그대로 던져서 fetchTrendData에서 잡도록 함
+                throw error; 
+            }
+        }
+        
+        // 지도에 데이터 표시 (기존과 동일)
+        function displayDataOnMap(data) {
+            debugLog('🗺️ 지도에 데이터 표시 시작', { dataCount: data?.length || 0 });
+            if (!Array.isArray(data)) { debugLog('❌ 데이터가 배열이 아닙니다', { data }, 'error'); showFloatingMessage('데이터 형식 오류: 배열이 아닙니다', 'error'); return; }
+            if (!map || !markersLayer) { debugLog('❌ 지도 또는 마커 레이어가 없습니다', null, 'error'); showFloatingMessage('지도가 초기화되지 않았습니다', 'error'); return; }
+            markersLayer.clearLayers();
+            let addedMarkers = 0; let invalidCoords = 0;
+            data.forEach((item, index) => {
+                try {
+                    if (!item || typeof item !== 'object') { debugLog(`잘못된 데이터 항목 (${index})`, { item }, 'warn'); return; }
+                    if (item.mapx && item.mapy) {
+                        const lat = parseFloat(item.mapy); const lng = parseFloat(item.mapx);
+                        if (isNaN(lat) || isNaN(lng) || lat < 33 || lat > 39 || lng < 124 || lng > 132) { invalidCoords++; return; }
+                        const readcount = parseInt(item.readcount) || 0;
+                        const config = getMarkerConfig(currentType, readcount);
+                        const iconMarker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-div-icon',
+                                html: `<div style="background-color: ${config.color}; color: white; border-radius: 50%; width: ${config.radius * 2}px; height: ${config.radius * 2}px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: ${Math.max(8, config.radius * 0.6)}px;"><i class="fas ${config.icon}"></i></div>`,
+                                iconSize: [config.radius * 2, config.radius * 2], iconAnchor: [config.radius, config.radius]
+                            })
+                        });
+                        const popupContent = createPopupContent(item);
+                        iconMarker.bindPopup(popupContent);
+                        markersLayer.addLayer(iconMarker);
+                        addedMarkers++;
+                    }
+                } catch (error) { debugLog(`마커 생성 실패 (${index})`, { error: error.message, item }, 'error'); }
+            });
+            debugLog(`✅ 마커 추가 완료`, { added: addedMarkers, invalid: invalidCoords, total: data.length });
+            if (addedMarkers > 0) {
+                try { const group = new L.featureGroup(markersLayer.getLayers()); map.fitBounds(group.getBounds().pad(0.1)); }
+                catch (error) { debugLog('지도 뷰 조정 실패', { error: error.message }, 'warn'); }
+            } else { showFloatingMessage('표시할 수 있는 마커가 없습니다. 다른 조건으로 시도해보세요.', 'error'); }
+        }
+        
+        // 팝업 내용 생성 (기존과 동일)
+        function createPopupContent(item) {
+            const imageUrl = item.firstimage || 'https://via.placeholder.com/200x120/f0f0f0/666?text=이미지+없음';
+            const readcount = parseInt(item.readcount) || 0;
+            const categoryName = getCategoryName(item.cat1, item.cat2, item.cat3);
+            return `<div style="font-family: Arial, sans-serif; max-width: 250px;"><img src="${imageUrl}" alt="${item.title}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.src='https://via.placeholder.com/200x120/f0f0f0/666?text=이미지+없음'"><h3 style="margin: 0 0 8px 0; color: #333; font-size: 14px; font-weight: 600;">${item.title}</h3><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-tag"></i> ${categoryName}</p><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-map-marker-alt"></i> ${item.addr1 || '주소 정보 없음'}</p><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-eye"></i> 조회수: ${readcount.toLocaleString()}</p>${item.tel ? `<p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-phone"></i> ${item.tel}</p>` : ''}${item.homepage ? `<p style="margin: 0; font-size: 11px;"><a href="${item.homepage}" target="_blank" style="color: #667eea;">홈페이지 방문</a></p>` : ''}</div>`;
+        }
+        
+        // 카테고리명 변환 (기존과 동일)
+        function getCategoryName(cat1, cat2, cat3) {
+            const categories = API_ENDPOINTS[currentType].categories;
+            if (cat3 && categories[cat3]) return categories[cat3];
+            if (cat2 && categories[cat2]) return categories[cat2];
+            if (cat1 && categories[cat1]) return categories[cat1];
+            return '기타';
+        }
+        
+        // 통계 업데이트 (기존과 동일)
+        function updateSummary(data) {
+            try {
+                if (!Array.isArray(data)) { debugLog('❌ 통계 업데이트: 데이터가 배열이 아닙니다', { data }, 'error'); return; }
+                const totalCount = data.length;
+                const avgViews = totalCount > 0 ? Math.round(data.reduce((sum, item) => sum + (parseInt(item?.readcount) || 0), 0) / totalCount) : 0;
+                let topPlace = ''; let maxViews = 0;
+                data.forEach(item => {
+                    if (item && item.readcount) {
+                        const views = parseInt(item.readcount) || 0;
+                        if (views > maxViews) { maxViews = views; topPlace = item.title || ''; }
+                    }
+                });
+                document.getElementById('totalCount').textContent = totalCount.toLocaleString();
+                document.getElementById('currentCategory').textContent = document.getElementById('categoryFilter').selectedOptions[0]?.text || '전체';
+                document.getElementById('avgViews').textContent = avgViews.toLocaleString();
+                document.getElementById('topPlace').textContent = topPlace || '-';
+                debugLog('✅ 통계 업데이트 완료', { totalCount, avgViews, topPlace });
+            } catch (error) { debugLog('❌ 통계 업데이트 실패', { error: error.message }, 'error'); }
+        }
+        
+        // 인기 트렌드 TOP 5 업데이트 (기존과 동일)
+        function updateTrendList(data) {
+            try {
+                const trendContent = document.getElementById('trendContent');
+                if (!trendContent) { debugLog('❌ 트렌드 컨텐츠 요소를 찾을 수 없습니다', null, 'error'); return; }
+                if (!Array.isArray(data)) { trendContent.innerHTML = '<div style="text-align: center; color: #666; padding: 20px; font-size: 13px;">데이터 형식 오류</div>'; return; }
+                const sortedData = data.filter(item => item && item.readcount).sort((a, b) => (parseInt(b.readcount) || 0) - (parseInt(a.readcount) || 0));
+                const top5 = sortedData.slice(0, 5);
+                trendContent.innerHTML = '';
+                if (top5.length === 0) { trendContent.innerHTML = '<div style="text-align: center; color: #666; padding: 20px; font-size: 13px;">데이터가 없습니다.</div>'; return; }
+                top5.forEach((item, index) => {
+                    try {
+                        const categoryName = getCategoryName(item.cat1, item.cat2, item.cat3);
+                        const readcount = parseInt(item.readcount) || 0;
+                        const trendItem = document.createElement('div');
+                        trendItem.className = 'trend-item';
+                        trendItem.innerHTML = `<div class="trend-rank">${index + 1}</div><div class="trend-info"><div class="trend-name">${item.title}</div><div class="trend-category">${categoryName} • 조회 ${readcount.toLocaleString()}</div></div>`;
+                        trendItem.addEventListener('click', () => {
+                            if (item.mapx && item.mapy && map) {
+                                const lat = parseFloat(item.mapy); const lng = parseFloat(item.mapx);
+                                if (!isNaN(lat) && !isNaN(lng)) {
+                                    map.setView([lat, lng], 15);
+                                    if (window.innerWidth <= 768) { document.getElementById('sidebar').classList.remove('open'); toggleSidebarIcon(false); /* 아이콘도 닫힘 상태로 */ }
+                                }
+                            }
+                        });
+                        trendContent.appendChild(trendItem);
+                    } catch (itemError) { debugLog(`트렌드 아이템 생성 실패 (${index})`, { error: itemError.message }, 'error'); }
+                });
+                debugLog('✅ 트렌드 리스트 업데이트 완료', { count: top5.length });
+            } catch (error) { debugLog('❌ 트렌드 리스트 업데이트 실패', { error: error.message }, 'error'); }
+        }
+        
+        // 플로팅 메시지 표시 (기존과 동일)
+        function showFloatingMessage(message, type = 'loading', duration = 5000) {
+            const existingMsg = document.querySelector('.floating-message');
+            if (existingMsg) existingMsg.remove();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `floating-message ${type}`;
+            if (type === 'loading') { messageDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i>${message}`; }
+            else if (type === 'error') { messageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`; }
+            else if (type === 'success') { messageDiv.innerHTML = `<i class="fas fa-check"></i> ${message}`; }
+            document.body.appendChild(messageDiv);
+            if (type !== 'loading' && duration > 0) {
+                setTimeout(() => { if (messageDiv.parentNode) { messageDiv.remove(); } }, duration);
+            }
+            return messageDiv;
+        }
+        
+        // 내 위치로 이동 (기존과 동일)
+        function moveToMyLocation() {
+            const locationBtn = document.querySelector('.location-btn');
+            locationBtn.disabled = true; locationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            debugLog('📍 사용자 위치 요청 시작');
+            if (!navigator.geolocation) {
+                showFloatingMessage('이 브라우저에서는 위치 서비스를 지원하지 않습니다.', 'error');
+                resetLocationButton(); return;
+            }
+            const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 };
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    debugLog('✅ 위치 획득 성공', { lat: latitude, lng: longitude });
+                    if (map) {
+                        map.setView([latitude, longitude], 15);
+                        const currentLocationMarker = L.marker([latitude, longitude], {
+                            icon: L.divIcon({
+                                className: 'current-location-marker',
+                                html: `<div style="background-color: #007bff; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); position: relative;"><i class="fas fa-dot-circle" style="font-size: 8px;"></i><div style="position: absolute; top: -5px; left: -5px; width: 30px; height: 30px; border: 2px solid #007bff; border-radius: 50%; opacity: 0.3; animation: pulse 2s infinite;"></div></div><style>@keyframes pulse { 0% { transform: scale(1); opacity: 0.3; } 50% { transform: scale(1.5); opacity: 0.1; } 100% { transform: scale(2); opacity: 0; } }</style>`,
+                                iconSize: [20, 20], iconAnchor: [10, 10]
+                            })
+                        });
+                        currentLocationMarker.addTo(map);
+                        currentLocationMarker.bindPopup('<div style="text-align: center; font-size: 12px;"><i class="fas fa-location-arrow"></i><br>현재 위치</div>');
+                        if (window.currentLocationMarkerInstance) { map.removeLayer(window.currentLocationMarkerInstance); }
+                        window.currentLocationMarkerInstance = currentLocationMarker;
+                        showFloatingMessage('현재 위치로 이동했습니다!', 'success', 3000);
+                    }
+                    resetLocationButton();
+                },
+                (error) => {
+                    debugLog('❌ 위치 획득 실패', { error: error.message, code: error.code }, 'error');
+                    let errorMessage = '위치를 가져올 수 없습니다.';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED: errorMessage = '위치 권한이 거부되었습니다.'; break;
+                        case error.POSITION_UNAVAILABLE: errorMessage = '위치 정보를 사용할 수 없습니다.'; break;
+                        case error.TIMEOUT: errorMessage = '위치 요청 시간이 초과되었습니다.'; break;
+                    }
+                    showFloatingMessage(errorMessage, 'error', 5000);
+                    resetLocationButton();
+                }, options
+            );
+        }
+        
+        // 위치 버튼 초기화 (기존과 동일)
+        function resetLocationButton() {
+            const locationBtn = document.querySelector('.location-btn');
+            if (locationBtn) { locationBtn.disabled = false; locationBtn.innerHTML = '<i class="fas fa-location-arrow"></i>'; }
+        }
+
+        // 데이터 로드 함수 (안전하게, API 키 유효성 메시지 강화)
+        async function loadTrendData() {
+            debugLog('🔄 트렌드 데이터 로드 시작...');
+            // debugMode = true; // 필요시 활성화
+            
+            if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
+                showFloatingMessage('API 키를 설정해주세요. 코드에서 YOUR_API_KEY_HERE를 실제 키로 교체해야 합니다.', 'error', 10000);
+                return;
+            }
+            
+            const loadingMsg = showFloatingMessage('트렌드 데이터를 불러오는 중...', 'loading');
+            
+            try {
+                const data = await fetchTrendData();
+                if (loadingMsg && loadingMsg.parentNode) { loadingMsg.remove(); }
+                if (!Array.isArray(data)) { throw new Error('API에서 배열 형태의 데이터를 받지 못했습니다'); }
+                currentData = data;
+                debugLog('✅ 데이터 로드 성공', { dataCount: data.length });
+                displayDataOnMap(data);
+                updateSummary(data);
+                updateTrendList(data);
+                showFloatingMessage(`${data.length}개의 장소를 불러왔습니다.`, 'success', 3000);
+            } catch (error) {
+                debugLog('❌ 데이터 로드 실패', { error: error.message, name: error.name, stack: error.stack }, 'error');
+                if (loadingMsg && loadingMsg.parentNode) { loadingMsg.remove(); }
+                showFloatingMessage(`데이터 로드 실패: ${error.message}`, 'error', 8000);
+            }
+        }
+        
+        // 사이드바 토글 아이콘 변경 함수
+        function toggleSidebarIcon(isOpen) {
+            const toggleButtonIcon = document.querySelector('.sidebar-toggle i');
+            if (isOpen) {
+                toggleButtonIcon.classList.remove('fa-bars');
+                toggleButtonIcon.classList.add('fa-times');
+            } else {
+                toggleButtonIcon.classList.remove('fa-times');
+                toggleButtonIcon.classList.add('fa-bars');
+            }
+        }
+
+        // 사이드바 토글 (모바일) 및 아이콘 변경
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+            toggleSidebarIcon(sidebar.classList.contains('open')); // 아이콘 상태 업데이트
+        }
+        
+        // 디버그 모드 토글 (기존과 동일)
+        function toggleDebugMode() {
+            debugMode = !debugMode;
+            const debugCard = document.getElementById('debugCard');
+            if (debugMode) { debugCard.style.display = 'block'; debugLog('🔧 디버그 모드 활성화'); }
+            else { debugCard.style.display = 'none'; console.log('🔧 디버그 모드 비활성화'); }
+        }
+        
+        // 페이지 로드 시 초기화 (기존과 동일)
+        document.addEventListener('DOMContentLoaded', async function() {
+            debugLog('📱 페이지 로드 완료, 초기화 시작...');
+            let leafletCheckCount = 0; const maxChecks = 20;
+            const checkLeaflet = () => {
+                if (typeof L !== 'undefined') {
+                    debugLog('✅ Leaflet 라이브러리 로드 확인');
+                    initializeApp();
+                } else {
+                    leafletCheckCount++;
+                    if (leafletCheckCount < maxChecks) { setTimeout(checkLeaflet, 100); }
+                    else {
+                        debugLog('❌ Leaflet 라이브러리 로드 타임아웃', null, 'error');
+                        showFloatingMessage('지도 라이브러리 로딩에 실패했습니다. 페이지를 새로고침해 주세요.', 'error', 10000);
+                    }
+                }
+            };
+            checkLeaflet();
+        });
+        
+        // 앱 초기화 함수 (기존과 동일)
+        function initializeApp() {
+            debugLog('🚀 앱 초기화 시작...');
+            const mapInitialized = initializeMap();
+            if (!mapInitialized) {
+                showFloatingMessage('지도 초기화 실패!', 'error', 8000);
+                return; // 지도 초기화 실패 시 더 이상 진행하지 않음
+            }
+            updateCategoryOptions();
+            document.querySelector('.filter-tabs').addEventListener('click', handleTabChange);
+            window.addEventListener('resize', () => {
+                if (map) { setTimeout(() => { map.invalidateSize(); debugLog('🔄 창 크기 변경으로 지도 재조정'); }, 100); }
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) { toggleDebugMode(); }
+            });
+            debugLog('✅ 앱 초기화 완료!');
+            showFloatingMessage('✅ 지도가 로드되었습니다! API 키를 설정하고 검색하세요.', 'success', 5000);
+        }
+    </script>
+</body>
+</html>

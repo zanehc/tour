@@ -356,7 +356,7 @@
             display: none; /* 기본적으로 숨김, 모바일에서만 표시 */
             position: fixed;
             bottom: 20px;
-            left: 20px; /* 왼쪽 여백 증가 */
+            left: 20px;
             z-index: 1000;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -590,7 +590,7 @@
                 <div class="control-section">
                     <label for="sortBy">정렬 기준</label>
                     <select id="sortBy">
-                        <option value="readcount">조회수순</option>
+                        <option value="readcount">인기도순</option>
                         <option value="distance">거리순</option>
                         <option value="title">이름순</option>
                     </select>
@@ -599,12 +599,6 @@
                 <div class="control-section">
                     <button class="btn" onclick="loadTrendData()">
                         <i class="fas fa-search"></i> 트렌드 검색
-                    </button>
-                </div>
-                
-                <div class="control-section">
-                    <button class="btn" onclick="testAPIConnection()" style="background: #28a745; margin-top: 10px;">
-                        <i class="fas fa-plug"></i> API 연결 테스트
                     </button>
                 </div>
             </div>
@@ -652,7 +646,7 @@
                             <span class="value" id="currentCategory">전체</span>
                         </div>
                         <div class="summary-item">
-                            <span class="label">평균 조회수</span>
+                            <span class="label">평균 인기도</span>
                             <span class="value" id="avgViews">-</span>
                         </div>
                         <div class="summary-item">
@@ -686,21 +680,12 @@
         const API_KEY = 'cpxewJsMcKvPuB8ZJM2NbAAS6pvEzF8TonrUtkC5IfZtoJxmkvxS3Qo44VkvKsOojM%2FfTSkVvL0LVHMne15q7g%3D%3D'; // 여기에 실제 API 키를 입력하세요!!!
         const BASE_URL = 'https://apis.data.go.kr/B551011/KorService1/';
         
-        // 더 간단하고 안정적인 프록시 방식
-        const SIMPLE_PROXIES = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?url=',
-            'https://api.codetabs.com/v1/proxy?quest=',
-            '' // 직접 연결 시도
-        ];
-        
         // 전역 변수
         let map;
         let markersLayer;
         let currentData = [];
         let currentType = 'tourist';
-
-        let debugMode = true; // 디버그 모드 기본 활성화
+        let debugMode = false;
         
         // API 엔드포인트 및 카테고리 정의
         const API_ENDPOINTS = {
@@ -724,6 +709,27 @@
                 contentTypeId: '15',
                 categories: { 'A02080100': '문화관광축제', 'A02080200': '일반축제', 'A02080300': '전통공연', 'A02080400': '연극', 'A02080500': '뮤지컬', 'A02080600': '오페라', 'A02080700': '전시회', 'A02080800': '박람회', 'A02081400': '스포츠경기'}
             }
+        };
+        
+        // 한국관광공사 API 에러 코드 정의
+        const ERROR_CODES = {
+            '00': '정상',
+            '01': '어플리케이션 에러',
+            '02': '데이터베이스 에러',
+            '03': '데이터없음 에러',
+            '04': 'HTTP 에러',
+            '05': '서비스 연결실패 에러',
+            '10': '잘못된 요청 파라메터 에러',
+            '11': '필수요청 파라메터가 없음',
+            '12': '해당 오픈API서비스가 없거나 폐기됨',
+            '20': '서비스 접근거부',
+            '21': '일시적으로 사용할 수 없는 서비스 키',
+            '22': '서비스 요청제한횟수 초과에러',
+            '30': '등록되지 않은 서비스키',
+            '31': '활용기간만료',
+            '32': '등록되지 않은 IP',
+            '33': '서명되지 않은 호출',
+            '99': '기타에러'
         };
         
         // 디버그 로그 함수
@@ -794,7 +800,7 @@
             return `${year}${month}`;
         }
         
-        // 마커 스타일 및 아이콘 결정
+        // 마커 스타일 및 아이콘 결정 (인기도 기준)
         function getMarkerConfig(type, readcount = 0) {
             const configs = {
                 tourist: { color: '#e74c3c', icon: 'fa-mountain' },
@@ -833,7 +839,7 @@
             }
         }
         
-        // 완전히 재작성된 안정적인 API 호출 함수
+        // 한국관광공사 API 호출 함수 (매뉴얼 기준)
         async function fetchTrendData() {
             const regionCode = document.getElementById('regionCode').value;
             const categoryCode = document.getElementById('categoryFilter').value;
@@ -845,36 +851,51 @@
             const currentYearMonth = getCurrentYearMonth();
             
             if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-                throw new Error('API 키가 설정되지 않았습니다. YOUR_API_KEY_HERE를 실제 API 키로 교체하세요.');
+                throw new Error('API 키가 설정되지 않았습니다. data.go.kr에서 발급받은 실제 API 키로 교체하세요.');
             }
             
-            // API 키 처리 - 한국관광공사 API는 디코딩된 키를 사용
-            let cleanAPIKey;
-            try {
-                cleanAPIKey = decodeURIComponent(API_KEY);
-                debugLog('✅ API 키 디코딩 성공');
-            } catch (error) {
-                cleanAPIKey = API_KEY;
-                debugLog('⚠️ API 키 디코딩 실패, 원본 사용', null, 'warn');
+            // 한국관광공사 API 키 처리 (매뉴얼 참고)
+            // 2015년 1월 이후 발급된 키는 인코딩 불필요, 이전 키는 디코딩 필요
+            let serviceKey = API_KEY;
+            if (API_KEY.includes('%')) {
+                // 인코딩된 키인 경우 디코딩
+                try {
+                    serviceKey = decodeURIComponent(API_KEY);
+                    debugLog('✅ API 키 디코딩 완료');
+                } catch (error) {
+                    serviceKey = API_KEY;
+                    debugLog('⚠️ API 키 디코딩 실패, 원본 사용', null, 'warn');
+                }
             }
             
-            // URL 파라미터 구성
+            // 기본 파라미터 설정
             const params = {
-                serviceKey: cleanAPIKey,
+                serviceKey: serviceKey,
                 numOfRows: 100,
                 pageNo: 1,
                 MobileOS: 'ETC',
                 MobileApp: 'TrendMapService',
-                _type: 'json',
-                arrange: sortBy,
-                contentTypeId: endpoint.contentTypeId
+                _type: 'json'
             };
+            
+            // 엔드포인트별 파라미터 추가
+            if (endpoint.url !== 'searchFestival1') {
+                params.arrange = sortBy;
+                params.contentTypeId = endpoint.contentTypeId;
+            } else {
+                params.eventStartDate = currentYearMonth + '01';
+                params.eventEndDate = currentYearMonth + '31';
+                if (sortBy !== 'distance') {
+                    params.arrange = sortBy;
+                }
+            }
 
-            // 조건별 파라미터 추가
+            // 지역 코드 추가
             if (regionCode && regionCode.trim() !== '') { 
                 params.areaCode = regionCode; 
             }
             
+            // 카테고리 코드 추가
             if (categoryCode && categoryCode.trim() !== '') {
                 if (currentType !== 'festival') {
                     if (categoryCode.length >= 3) { params.cat1 = categoryCode.substring(0, 3); }
@@ -886,211 +907,166 @@
                 }
             }
             
-            if (currentType === 'festival') {
-                params.eventStartDate = currentYearMonth + '01';
-                params.eventEndDate = currentYearMonth + '31';
-            }
-            
             // URL 구성
             const baseUrl = `${BASE_URL}${endpoint.url}`;
             const queryString = new URLSearchParams(params).toString();
-            const finalUrl = `${baseUrl}?${queryString}`;
+            const apiUrl = `${baseUrl}?${queryString}`;
 
             debugLog('🔗 API 요청 URL (키 숨김)', { 
-                url: finalUrl.replace(cleanAPIKey, '***API_KEY***'),
+                url: apiUrl.replace(serviceKey, '***API_KEY***'),
                 params: Object.keys(params)
             });
             
-            // 각 프록시 순차 시도
-            let lastError = null;
-            
-            for (let i = 0; i < SIMPLE_PROXIES.length; i++) {
-                const proxyPrefix = SIMPLE_PROXIES[i];
-                let requestUrl;
-                
-                if (proxyPrefix) {
-                    // 프록시 사용
-                    if (proxyPrefix.includes('quest=')) {
-                        requestUrl = proxyPrefix + encodeURIComponent(finalUrl);
-                    } else {
-                        requestUrl = proxyPrefix + finalUrl;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'User-Agent': 'Mozilla/5.0 (compatible; TrendMapService/1.0)'
                     }
-                } else {
-                    // 직접 연결
-                    requestUrl = finalUrl;
+                });
+                
+                debugLog('📡 응답 수신', { 
+                    status: response.status,
+                    statusText: response.statusText,
+                    contentType: response.headers.get('content-type')
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
+                const responseText = await response.text();
+                
+                if (!responseText || responseText.trim() === '') {
+                    throw new Error('서버에서 빈 응답을 받았습니다');
+                }
+                
+                debugLog('📄 응답 내용 확인', { 
+                    length: responseText.length,
+                    preview: responseText.substring(0, 200)
+                });
+                
+                // HTML 응답 체크
+                const trimmed = responseText.trim();
+                if (trimmed.toLowerCase().startsWith('<!doctype') || 
+                    trimmed.toLowerCase().startsWith('<html') ||
+                    trimmed.includes('<title>')) {
+                    throw new Error('HTML 에러 페이지를 받았습니다. API 엔드포인트를 확인하세요.');
+                }
+                
+                // JSON 파싱
+                let data;
                 try {
-                    debugLog(`🔄 시도 ${i + 1}/${SIMPLE_PROXIES.length}`, { 
-                        proxy: proxyPrefix || '직접연결',
-                        url: requestUrl.replace(cleanAPIKey, '***API_KEY***')
+                    data = JSON.parse(responseText);
+                    debugLog('📊 JSON 파싱 성공', { 
+                        hasResponse: !!data.response,
+                        responseKeys: Object.keys(data || {})
                     });
-                    
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 20000);
-                    
-                    const fetchOptions = {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json, text/plain, */*',
-                            'Accept-Language': 'ko-KR,ko;q=0.9,en;q=0.8',
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                        },
-                        signal: controller.signal
-                    };
-                    
-                    // 직접 연결시에만 mode 설정
-                    if (!proxyPrefix) {
-                        fetchOptions.mode = 'cors';
-                    }
-                    
-                    const response = await fetch(requestUrl, fetchOptions);
-                    clearTimeout(timeoutId);
-                    
-                    debugLog('📡 응답 수신', { 
-                        status: response.status,
-                        statusText: response.statusText,
-                        contentType: response.headers.get('content-type'),
-                        proxy: proxyPrefix || '직접연결'
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    const responseText = await response.text();
-                    
-                    if (!responseText || responseText.trim() === '') {
-                        throw new Error('빈 응답을 받았습니다');
-                    }
-                    
-                    debugLog('📄 응답 내용 확인', { 
-                        length: responseText.length,
-                        startsWithHtml: responseText.trim().toLowerCase().startsWith('<'),
-                        preview: responseText.substring(0, 100)
-                    });
-                    
-                    // HTML 응답 체크
-                    const trimmed = responseText.trim();
-                    if (trimmed.toLowerCase().startsWith('<!doctype') || 
-                        trimmed.toLowerCase().startsWith('<html') ||
-                        trimmed.includes('<title>') ||
-                        trimmed.includes('error') && trimmed.includes('<')) {
-                        throw new Error('HTML 에러 페이지를 받았습니다');
-                    }
-                    
-                    // JSON 파싱 시도
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                        debugLog('📊 JSON 파싱 성공', { 
-                            hasResponse: !!data.response,
-                            responseKeys: Object.keys(data || {})
-                        });
-                    } catch (jsonError) {
-                        debugLog('❌ JSON 파싱 실패', { 
-                            error: jsonError.message,
-                            responseStart: responseText.substring(0, 200)
-                        }, 'error');
-                        throw new Error(`JSON 파싱 실패: ${jsonError.message}`);
-                    }
-                    
-                    // 데이터 검증
-                    const validatedData = validateAndExtractData(data);
-                    if (validatedData === null) {
-                        throw new Error('API 응답 데이터 검증 실패');
-                    }
-                    
-                    debugLog('✅ API 호출 성공!', { 
-                        dataCount: validatedData.length,
-                        usedProxy: proxyPrefix || '직접연결'
-                    });
-                    
-                    return validatedData;
-                    
-                } catch (error) {
-                    lastError = error;
-                    debugLog(`❌ 시도 ${i + 1} 실패`, { 
-                        error: error.message,
-                        proxy: proxyPrefix || '직접연결'
+                } catch (jsonError) {
+                    debugLog('❌ JSON 파싱 실패', { 
+                        error: jsonError.message,
+                        responseStart: responseText.substring(0, 300)
                     }, 'error');
-                    
-                    // 마지막이 아니면 다음 시도
-                    if (i < SIMPLE_PROXIES.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        continue;
-                    }
+                    throw new Error(`JSON 파싱 실패: ${jsonError.message}`);
                 }
+                
+                // 데이터 검증 및 추출
+                const validatedData = validateAndExtractData(data);
+                
+                debugLog('✅ API 호출 성공!', { 
+                    dataCount: validatedData.length
+                });
+                
+                return validatedData;
+                
+            } catch (error) {
+                debugLog('❌ API 호출 실패', { 
+                    error: error.message,
+                    name: error.name
+                }, 'error');
+                throw error;
             }
-            
-            // 모든 시도 실패
-            const errorMsg = lastError ? lastError.message : '알 수 없는 오류';
-            throw new Error(`모든 연결 시도가 실패했습니다. API 키와 인터넷 연결을 확인하세요. 오류: ${errorMsg}`);
         }
 
-        // API 응답 데이터 검증 및 추출
+        // API 응답 데이터 검증 및 추출 (한국관광공사 API 표준)
         function validateAndExtractData(data) {
             try {
                 if (!data || typeof data !== 'object') { 
-                    throw new Error('응답 데이터가 유효하지 않음'); 
+                    throw new Error('유효하지 않은 응답 데이터'); 
                 }
+                
                 if (!data.response) { 
                     throw new Error('응답에 response 객체가 없음'); 
                 }
+                
                 if (!data.response.header) { 
                     throw new Error('응답에 header가 없음'); 
                 }
                 
-                const resultCode = data.response.header.resultCode;
-                const resultMsg = data.response.header.resultMsg;
+                const header = data.response.header;
+                const resultCode = header.resultCode;
+                const resultMsg = header.resultMsg;
                 
+                debugLog('📋 API 응답 헤더', { resultCode, resultMsg });
+                
+                // 에러 코드 체크 (한국관광공사 표준)
                 if (resultCode !== '0000') {
-                    debugLog('❌ API 에러', { resultCode, resultMsg, data }, 'error');
-                    if(resultCode === '22' || resultMsg.toUpperCase().includes("LIMITED NUMBER OF SERVICE REQUESTS EXCEEDS")){
-                         throw new Error(`API 에러 (${resultCode}): ${resultMsg}. 일일 트래픽 허용량을 초과했을 수 있습니다.`);
+                    const errorDesc = ERROR_CODES[resultCode] || '알 수 없는 오류';
+                    debugLog('❌ API 에러', { resultCode, resultMsg, errorDesc }, 'error');
+                    
+                    if (resultCode === '22') {
+                        throw new Error(`API 사용량 초과 (${resultCode}): ${errorDesc}. 잠시 후 다시 시도해주세요.`);
+                    } else if (resultCode === '30') {
+                        throw new Error(`등록되지 않은 서비스키 (${resultCode}): API 키를 확인해주세요.`);
+                    } else if (resultCode === '03') {
+                        throw new Error(`데이터 없음 (${resultCode}): 선택한 조건에 해당하는 데이터가 없습니다.`);
+                    } else {
+                        throw new Error(`API 에러 (${resultCode}): ${errorDesc} - ${resultMsg}`);
                     }
-                    throw new Error(`API 에러 (${resultCode}): ${resultMsg}`);
                 }
                 
                 const body = data.response.body;
                 if (!body) { 
-                    debugLog('⚠️ 응답에 body가 없습니다 (정상이나 데이터 없음)', null, 'warn'); 
+                    debugLog('⚠️ 응답에 body가 없습니다', null, 'warn'); 
                     return []; 
                 }
                 
                 const items = body.items;
-                if (!items || (typeof items === 'object' && !items.item && body.totalCount === 0)) { 
-                    debugLog('⚠️ 응답에 items가 없거나 비어있습니다', {body}, 'warn'); 
+                if (!items) { 
+                    debugLog('⚠️ 응답에 items가 없습니다', {body}, 'warn'); 
                     return []; 
                 }
                 
                 let resultArray = [];
-                if (items && items.item) {
+                if (items.item) {
                     resultArray = Array.isArray(items.item) ? items.item : [items.item];
                 } else if (Array.isArray(items)) {
-                     resultArray = items;
-                } else if (body.totalCount > 0 && !items.item){
-                    debugLog('⚠️ totalCount는 있으나 item이 없는 경우', {items}, 'warn');
+                    resultArray = items;
+                } else {
+                    debugLog('⚠️ items 구조를 인식할 수 없습니다', {items}, 'warn');
                     return [];
                 }
 
+                // 유효한 데이터만 필터링
                 const validData = resultArray.filter(item => 
                     item && 
                     typeof item === 'object' && 
                     item.title && 
-                    typeof item.title === 'string'
+                    typeof item.title === 'string' &&
+                    item.title.trim() !== ''
                 );
                 
                 debugLog('✅ 데이터 추출 완료', { 
                     total: resultArray.length, 
                     valid: validData.length 
                 });
+                
                 return validData;
                 
             } catch (error) {
                 debugLog('❌ 데이터 검증/추출 중 오류', { 
-                    error: error.message, 
-                    originalData: data 
+                    error: error.message
                 }, 'error');
                 throw error; 
             }
@@ -1171,12 +1147,12 @@
             }
         }
         
-        // 팝업 내용 생성
+        // 팝업 내용 생성 (인기도 표시)
         function createPopupContent(item) {
             const imageUrl = item.firstimage || 'https://via.placeholder.com/200x120/f0f0f0/666?text=이미지+없음';
             const readcount = parseInt(item.readcount) || 0;
             const categoryName = getCategoryName(item.cat1, item.cat2, item.cat3);
-            return `<div style="font-family: Arial, sans-serif; max-width: 250px;"><img src="${imageUrl}" alt="${item.title}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.src='https://via.placeholder.com/200x120/f0f0f0/666?text=이미지+없음'"><h3 style="margin: 0 0 8px 0; color: #333; font-size: 14px; font-weight: 600;">${item.title}</h3><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-tag"></i> ${categoryName}</p><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-map-marker-alt"></i> ${item.addr1 || '주소 정보 없음'}</p><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-eye"></i> 조회수: ${readcount.toLocaleString()}</p>${item.tel ? `<p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-phone"></i> ${item.tel}</p>` : ''}${item.homepage ? `<p style="margin: 0; font-size: 11px;"><a href="${item.homepage}" target="_blank" style="color: #667eea;">홈페이지 방문</a></p>` : ''}</div>`;
+            return `<div style="font-family: Arial, sans-serif; max-width: 250px;"><img src="${imageUrl}" alt="${item.title}" style="width: 100%; height: 100px; object-fit: cover; border-radius: 6px; margin-bottom: 8px;" onerror="this.src='https://via.placeholder.com/200x120/f0f0f0/666?text=이미지+없음'"><h3 style="margin: 0 0 8px 0; color: #333; font-size: 14px; font-weight: 600;">${item.title}</h3><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-tag"></i> ${categoryName}</p><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-map-marker-alt"></i> ${item.addr1 || '주소 정보 없음'}</p><p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-fire"></i> 인기도: ${readcount.toLocaleString()}</p>${item.tel ? `<p style="margin: 0 0 5px 0; color: #666; font-size: 11px;"><i class="fas fa-phone"></i> ${item.tel}</p>` : ''}${item.homepage ? `<p style="margin: 0; font-size: 11px;"><a href="${item.homepage}" target="_blank" style="color: #667eea;">홈페이지 방문</a></p>` : ''}</div>`;
         }
         
         // 카테고리명 변환
@@ -1188,7 +1164,7 @@
             return '기타';
         }
         
-        // 통계 업데이트
+        // 통계 업데이트 (인기도 기준)
         function updateSummary(data) {
             try {
                 if (!Array.isArray(data)) { 
@@ -1222,7 +1198,7 @@
             }
         }
         
-        // 인기 트렌드 TOP 5 업데이트
+        // 인기 트렌드 TOP 5 업데이트 (인기도 기준)
         function updateTrendList(data) {
             try {
                 const trendContent = document.getElementById('trendContent');
@@ -1250,7 +1226,7 @@
                         const readcount = parseInt(item.readcount) || 0;
                         const trendItem = document.createElement('div');
                         trendItem.className = 'trend-item';
-                        trendItem.innerHTML = `<div class="trend-rank">${index + 1}</div><div class="trend-info"><div class="trend-name">${item.title}</div><div class="trend-category">${categoryName} • 조회 ${readcount.toLocaleString()}</div></div>`;
+                        trendItem.innerHTML = `<div class="trend-rank">${index + 1}</div><div class="trend-info"><div class="trend-name">${item.title}</div><div class="trend-category">${categoryName} • 인기도 ${readcount.toLocaleString()}</div></div>`;
                         trendItem.addEventListener('click', () => {
                             if (item.mapx && item.mapy && map) {
                                 const lat = parseFloat(item.mapy); 
@@ -1380,115 +1356,7 @@
             }
         }
 
-        // API 연결 테스트 함수
-        async function testAPIConnection() {
-            debugLog('🔧 API 연결 테스트 시작...');
-            
-            if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-                showFloatingMessage('⚠️ API 키를 먼저 설정해주세요!', 'error', 5000);
-                return;
-            }
-            
-            const testMsg = showFloatingMessage('🔧 API 연결 상태를 확인하는 중...', 'loading');
-            
-            try {
-                // 간단한 지역코드 조회 API로 테스트
-                let cleanAPIKey;
-                try {
-                    cleanAPIKey = decodeURIComponent(API_KEY);
-                } catch (error) {
-                    cleanAPIKey = API_KEY;
-                }
-                
-                const testUrl = `${BASE_URL}areaCode1?serviceKey=${cleanAPIKey}&numOfRows=5&pageNo=1&MobileOS=ETC&MobileApp=TrendMapService&_type=json`;
-                
-                debugLog('🔗 테스트 URL', { url: testUrl.replace(cleanAPIKey, '***API_KEY***') });
-                
-                // 프록시들로 테스트
-                for (let i = 0; i < SIMPLE_PROXIES.length; i++) {
-                    const proxyPrefix = SIMPLE_PROXIES[i];
-                    let requestUrl;
-                    
-                    if (proxyPrefix) {
-                        if (proxyPrefix.includes('quest=')) {
-                            requestUrl = proxyPrefix + encodeURIComponent(testUrl);
-                        } else {
-                            requestUrl = proxyPrefix + testUrl;
-                        }
-                    } else {
-                        requestUrl = testUrl;
-                    }
-                    
-                    try {
-                        debugLog(`🔧 테스트 시도 ${i + 1}`, { proxy: proxyPrefix || '직접연결' });
-                        
-                        const response = await fetch(requestUrl, {
-                            method: 'GET',
-                            headers: {
-                                'Accept': 'application/json',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                            },
-                            signal: AbortSignal.timeout(10000)
-                        });
-                        
-                        const responseText = await response.text();
-                        
-                        if (responseText.trim().startsWith('<')) {
-                            throw new Error('HTML 응답 받음');
-                        }
-                        
-                        const data = JSON.parse(responseText);
-                        
-                        if (data.response && data.response.header) {
-                            const resultCode = data.response.header.resultCode;
-                            const resultMsg = data.response.header.resultMsg;
-                            
-                            if (resultCode === '0000') {
-                                if (testMsg.parentNode) testMsg.remove();
-                                showFloatingMessage(`✅ API 연결 성공! (${proxyPrefix || '직접연결'} 사용)`, 'success', 5000);
-                                debugLog('✅ API 연결 테스트 성공', { 
-                                    proxy: proxyPrefix || '직접연결',
-                                    resultCode,
-                                    resultMsg
-                                });
-                                return;
-                            } else {
-                                throw new Error(`API 오류: ${resultCode} - ${resultMsg}`);
-                            }
-                        } else {
-                            throw new Error('잘못된 응답 구조');
-                        }
-                        
-                    } catch (error) {
-                        debugLog(`테스트 시도 ${i + 1} 실패`, { 
-                            error: error.message,
-                            proxy: proxyPrefix || '직접연결'
-                        }, 'error');
-                        
-                        if (i === SIMPLE_PROXIES.length - 1) {
-                            throw error;
-                        }
-                    }
-                }
-                
-            } catch (error) {
-                if (testMsg.parentNode) testMsg.remove();
-                debugLog('❌ API 연결 테스트 실패', { error: error.message }, 'error');
-                
-                let errorMsg = '';
-                if (error.message.includes('API 오류')) {
-                    errorMsg = `❌ ${error.message} - API 키를 확인해주세요.`;
-                } else if (error.message.includes('HTML')) {
-                    errorMsg = '❌ 프록시 서버 오류 - 네트워크 상태를 확인해주세요.';
-                } else {
-                    errorMsg = `❌ 연결 실패: ${error.message}`;
-                }
-                
-                showFloatingMessage(errorMsg, 'error', 8000);
-            }
-        }
-        
-        // 데이터 로드 함수 (안정성 대폭 개선)
+        // 데이터 로드 함수 (한국관광공사 API 표준)
         async function loadTrendData() {
             debugLog('🔄 트렌드 데이터 로드 시작...');
             
@@ -1498,7 +1366,7 @@
                 return;
             }
             
-            const loadingMsg = showFloatingMessage('🔍 트렌드 데이터를 불러오는 중... (최대 30초 소요)', 'loading');
+            const loadingMsg = showFloatingMessage('🔍 한국관광공사 API에서 트렌드 데이터를 불러오는 중...', 'loading');
             
             try {
                 const data = await fetchTrendData();
@@ -1527,13 +1395,12 @@
                 updateSummary(data);
                 updateTrendList(data);
                 
-                showFloatingMessage(`🎉 ${data.length}개의 장소를 성공적으로 불러왔습니다!`, 'success', 4000);
+                showFloatingMessage(`🎉 ${data.length}개의 인기 장소를 성공적으로 불러왔습니다!`, 'success', 4000);
                 
             } catch (error) {
                 debugLog('❌ 데이터 로드 실패', { 
                     error: error.message, 
-                    name: error.name, 
-                    stack: error.stack 
+                    name: error.name
                 }, 'error');
                 
                 if (loadingMsg && loadingMsg.parentNode) { 
@@ -1543,10 +1410,14 @@
                 let userFriendlyMessage = '';
                 if (error.message.includes('API 키')) {
                     userFriendlyMessage = '❌ API 키 오류: 한국관광공사 API 키를 확인해주세요.';
-                } else if (error.message.includes('연결 시도가 실패')) {
+                } else if (error.message.includes('등록되지 않은')) {
+                    userFriendlyMessage = '❌ 등록되지 않은 API 키: data.go.kr에서 발급받은 정상 키인지 확인해주세요.';
+                } else if (error.message.includes('사용량 초과')) {
+                    userFriendlyMessage = '⏰ API 사용량 초과: 일일 1,000건 제한을 초과했습니다. 내일 다시 시도해주세요.';
+                } else if (error.message.includes('데이터 없음')) {
+                    userFriendlyMessage = '📭 해당 조건의 데이터가 없습니다. 다른 지역이나 카테고리를 선택해보세요.';
+                } else if (error.message.includes('HTML')) {
                     userFriendlyMessage = '🌐 네트워크 오류: 인터넷 연결을 확인하고 다시 시도해주세요.';
-                } else if (error.message.includes('트래픽')) {
-                    userFriendlyMessage = '⏰ API 사용량 초과: 잠시 후 다시 시도해주세요.';
                 } else {
                     userFriendlyMessage = `❌ 데이터 로드 실패: ${error.message}`;
                 }
@@ -1576,7 +1447,7 @@
             toggleSidebarIcon(sidebar.classList.contains('open'));
         }
         
-        // 사이드바 닫기 함수 (새로 추가)
+        // 사이드바 닫기 함수
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             sidebar.classList.remove('open');
@@ -1633,10 +1504,6 @@
             updateCategoryOptions();
             document.querySelector('.filter-tabs').addEventListener('click', handleTabChange);
             
-            // 디버그 모드 기본 활성화
-            const debugCard = document.getElementById('debugCard');
-            debugCard.style.display = 'block';
-            
             window.addEventListener('resize', () => {
                 if (map) { 
                     setTimeout(() => { 
@@ -1653,7 +1520,7 @@
             });
             
             debugLog('✅ 앱 초기화 완료!');
-            showFloatingMessage('🗺️ 지도가 준비되었습니다! "트렌드 검색" 버튼을 눌러 한국의 인기 관광지와 맛집을 탐색해보세요!', 'success', 6000);
+            showFloatingMessage('🗺️ 한국관광공사 공식 API를 활용한 트렌드 지도가 준비되었습니다! "트렌드 검색"을 눌러 인기 관광지와 맛집을 탐색해보세요!', 'success', 6000);
             
             // API 키 상태 확인
             if (API_KEY && API_KEY !== 'YOUR_API_KEY_HERE') {

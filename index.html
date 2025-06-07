@@ -1,3 +1,22 @@
+알겠습니다! 제공해주신 HTML 코드에서 왼쪽 패널의 카테고리 선택을 행정구역 선택으로 변경하고, 대한민국 시/도 및 시/군/구 선택 기능을 추가하며, 선택된 시/군/구로 지도를 확대하는 기능을 구현하겠습니다.
+
+이를 위해 다음과 같은 변경 사항이 적용됩니다:
+
+1.  **HTML 구조 변경**:
+    * `생활지도`, `밈지도` 섹션을 제거하고 `지도선택` 섹션으로 대체합니다.
+    * `지도선택` 섹션 아래에 시/도 목록과 시/군/구 목록을 동적으로 생성할 요소를 추가합니다.
+
+2.  **JavaScript 로직 변경**:
+    * **행정구역 데이터**: 대한민국 시/도 및 시/군/구 데이터를 포함하는 객체를 정의합니다. 이 데이터는 나중에 실제 데이터베이스나 API에서 가져올 수 있도록 확장 가능하게 설계됩니다.
+    * **`loadAdministrativeDivisions()` 함수 추가**: 이 함수는 초기 시/도 목록을 왼쪽 패널에 표시합니다.
+    * **`selectProvince()` 함수 변경**: 시/도 선택 시 해당 시/도에 속하는 시/군/구 목록을 동적으로 생성하여 표시하고, 지도를 해당 시/도로 이동시킵니다.
+    * **`selectDistrict()` 함수 추가**: 시/군/구 선택 시 해당 시/군/구의 좌표로 지도를 줌인합니다.
+    * **마커 및 팝업 표시 로직 유지**: 기존의 휴게소, 맛집, 주유소 등 데이터 표시 로직은 그대로 유지하되, 선택된 행정구역에 따라 필터링되는 기능을 추가할 수 있도록 준비합니다 (현재는 필터링 로직까지는 포함되지 않음).
+    * **`CATEGORY_CONFIG` 및 관련 API 로직**: 휴게소 API 관련 코드는 그대로 유지하며, '맛집', '주유소', 'SNS핫플', '지금이곳은', '이달의축제', '숙박', '어린이' 등의 카테고리도 계속 지원합니다. 사용자가 행정구역을 선택하면 해당 행정구역으로 지도가 이동하며, 이후 사용자가 카테고리 버튼을 누르면 해당 카테고리의 데이터가 지도에 표시됩니다. (선택된 행정구역 내에서만 데이터를 필터링하는 기능은 현재 구현 범위 밖이지만, 데이터 구조를 활용하여 추후 쉽게 추가 가능합니다.)
+
+아래에 수정된 HTML 코드를 제공합니다.
+
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -236,6 +255,49 @@
         .category-section-content .category-btn:last-child {
             margin-bottom: 0;
         }
+
+        /* 행정구역 선택 버튼 스타일 (카테고리 버튼과 유사하게) */
+        .administrative-btn {
+            width: 100%;
+            background: white;
+            border: 1px solid #e1e5e9; /* 일반 카테고리 버튼보다 얇은 테두리 */
+            padding: 10px 15px; /* 약간 작은 패딩 */
+            border-radius: 8px; /* 약간 작은 radius */
+            cursor: pointer;
+            font-size: 13px; /* 약간 작은 폰트 */
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.2s;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px; /* 약간 작은 마진 */
+        }
+
+        .administrative-btn:hover {
+            border-color: #764ba2; /* hover 색상 변경 */
+            background: #f3f5ff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(118, 75, 162, 0.1);
+        }
+
+        .administrative-btn.active {
+            background: linear-gradient(135deg, #764ba2 0%, #a27ee2 100%); /* 보라 계열 강조 */
+            border-color: #764ba2;
+            color: white;
+        }
+        
+        .administrative-btn i {
+            font-size: 16px; /* 아이콘 크기 조정 */
+            width: 18px;
+            text-align: center;
+        }
+
+        /* 시군구 버튼은 조금 더 안으로 들여쓰기 */
+        .administrative-btn.district-btn {
+            padding-left: 30px;
+        }
         
         /* 지도 컨테이너 */
         .map-container {
@@ -353,7 +415,7 @@
                 font-size: 1.2rem;
             }
             
-            .category-btn {
+            .category-btn, .administrative-btn {
                 padding: 12px 16px;
                 font-size: 13px;
             }
@@ -445,26 +507,39 @@
     </div>
     
     <button class="menu-toggle" onclick="toggleSidebar()">
-        <i class="fas fa-times"></i>
+        <i class="fas fa-bars"></i>
     </button>
     
     <div class="main-container">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <h3><i class="fas fa-map-marked-alt"></i> 카테고리 선택</h3>
+                <h3><i class="fas fa-map-marked-alt"></i> 지도선택</h3>
             </div>
             
             <div class="category-buttons">
-                <!-- 생활지도 섹션 -->
                 <div class="category-section">
-                    <div class="category-section-title" onclick="toggleCategorySection('living-map')">
+                    <div class="category-section-title" onclick="toggleCategorySection('administrative-map')">
                         <div class="category-section-title-left">
-                            <i class="fas fa-home"></i>
-                            생활지도
+                            <i class="fas fa-globe-asia"></i>
+                            전국 행정구역
                         </div>
-                        <i class="fas fa-chevron-down category-section-toggle" id="living-map-toggle"></i>
+                        <i class="fas fa-chevron-down category-section-toggle" id="administrative-map-toggle"></i>
                     </div>
-                    <div class="category-section-content" id="living-map-content">
+                    <div class="category-section-content" id="administrative-map-content">
+                        <div id="province-list"></div>
+                        <div id="district-list"></div>
+                    </div>
+                </div>
+
+                <div class="category-section">
+                    <div class="category-section-title" onclick="toggleCategorySection('living-map-categories')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-list-alt"></i>
+                            카테고리별 정보
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="living-map-categories-toggle"></i>
+                    </div>
+                    <div class="category-section-content collapsed" id="living-map-categories-content">
                         <button class="category-btn" data-category="휴게소" onclick="selectCategory('휴게소')">
                             <i class="fas fa-gas-pump"></i>
                             <span>휴게소</span>
@@ -492,16 +567,15 @@
                     </div>
                 </div>
 
-                <!-- 밈지도 섹션 -->
                 <div class="category-section">
-                    <div class="category-section-title" onclick="toggleCategorySection('meme-map')">
+                    <div class="category-section-title" onclick="toggleCategorySection('meme-map-categories')">
                         <div class="category-section-title-left">
                             <i class="fas fa-fire"></i>
-                            밈지도
+                            인기 테마 지도
                         </div>
-                        <i class="fas fa-chevron-down category-section-toggle" id="meme-map-toggle"></i>
+                        <i class="fas fa-chevron-down category-section-toggle" id="meme-map-categories-toggle"></i>
                     </div>
-                    <div class="category-section-content collapsed" id="meme-map-content">
+                    <div class="category-section-content collapsed" id="meme-map-categories-content">
                         <button class="category-btn" data-category="SNS핫플" onclick="selectCategory('SNS핫플')">
                             <i class="fas fa-hashtag"></i>
                             <span>SNS핫플</span>
@@ -524,7 +598,7 @@
         <div class="map-container">
             <div id="map"></div>
             <div class="map-overlay">
-                <span id="currentCategoryDisplay">카테고리를 선택해주세요</span>
+                <span id="currentCategoryDisplay">지도 영역을 선택해주세요</span>
             </div>
         </div>
     </div>
@@ -544,7 +618,9 @@
         let currentCategory = '';
         let allData = {}; // 카테고리별 데이터 저장
         let restaurantData = []; // 식당 데이터 저장
-        
+        let administrativeData = {}; // 행정구역 데이터 저장
+        let currentSelectedProvince = null; // 현재 선택된 시/도
+
         // ========== 휴게소 API 설정 ==========
         const REST_AREA_API_CONFIG = {
             API_KEY: '4192441652', // 실제 API 키 적용
@@ -596,6 +672,81 @@
                 return { color: '#2c3e50', icon: 'fa-utensils', size: 18 }; // 검정색, 통일된 크기
             }
         }
+        
+        // 대한민국 시/도 및 시/군/구 데이터 (좌표는 중심 대략값)
+        const KOREA_ADMINISTRATIVE_DIVISIONS = {
+            "서울특별시": { lat: 37.5665, lng: 126.9780, zoom: 11, districts: {
+                "강남구": { lat: 37.5172, lng: 127.0473, zoom: 13 },
+                "종로구": { lat: 37.5700, lng: 126.9790, zoom: 13 },
+                "마포구": { lat: 37.5594, lng: 126.9427, zoom: 13 },
+                "영등포구": { lat: 37.5255, lng: 126.9009, zoom: 13 }
+            }},
+            "부산광역시": { lat: 35.1796, lng: 129.0756, zoom: 11, districts: {
+                "해운대구": { lat: 35.1633, lng: 129.1648, zoom: 13 },
+                "부산진구": { lat: 35.1848, lng: 129.0573, zoom: 13 }
+            }},
+            "대구광역시": { lat: 35.8714, lng: 128.6014, zoom: 11, districts: {
+                "중구": { lat: 35.8714, lng: 128.6014, zoom: 13 },
+                "수성구": { lat: 35.8457, lng: 128.6277, zoom: 13 }
+            }},
+            "인천광역시": { lat: 37.4563, lng: 126.7052, zoom: 11, districts: {
+                "연수구": { lat: 37.3995, lng: 126.6601, zoom: 13 },
+                "남동구": { lat: 37.4093, lng: 126.7328, zoom: 13 }
+            }},
+            "광주광역시": { lat: 35.1595, lng: 126.8526, zoom: 11, districts: {
+                "서구": { lat: 35.1500, lng: 126.8569, zoom: 13 },
+                "북구": { lat: 35.1824, lng: 126.9079, zoom: 13 }
+            }},
+            "대전광역시": { lat: 36.3504, lng: 127.3845, zoom: 11, districts: {
+                "유성구": { lat: 36.3700, lng: 127.3500, zoom: 13 },
+                "서구": { lat: 36.3510, lng: 127.3870, zoom: 13 }
+            }},
+            "울산광역시": { lat: 35.5384, lng: 129.3114, zoom: 11, districts: {
+                "남구": { lat: 35.5390, lng: 129.3300, zoom: 13 },
+                "중구": { lat: 35.5600, lng: 129.3370, zoom: 13 }
+            }},
+            "세종특별자치시": { lat: 36.4800, lng: 127.2890, zoom: 11, districts: {
+                "세종시": { lat: 36.4800, lng: 127.2890, zoom: 12 }
+            }},
+            "경기도": { lat: 37.4138, lng: 127.5183, zoom: 9, districts: {
+                "수원시": { lat: 37.2871, lng: 127.0097, zoom: 12 },
+                "고양시": { lat: 37.6580, lng: 126.8322, zoom: 12 },
+                "용인시": { lat: 37.2410, lng: 127.1770, zoom: 12 },
+                "성남시": { lat: 37.4190, lng: 127.1268, zoom: 12 }
+            }},
+            "강원특별자치도": { lat: 37.8283, lng: 128.2815, zoom: 9, districts: {
+                "춘천시": { lat: 37.8813, lng: 127.7298, zoom: 12 },
+                "강릉시": { lat: 37.7519, lng: 128.8761, zoom: 12 }
+            }},
+            "충청북도": { lat: 36.6361, lng: 127.8100, zoom: 9, districts: {
+                "청주시": { lat: 36.6433, lng: 127.4913, zoom: 12 },
+                "충주시": { lat: 36.9912, lng: 127.9250, zoom: 12 }
+            }},
+            "충청남도": { lat: 36.5184, lng: 126.8000, zoom: 9, districts: {
+                "천안시": { lat: 36.8140, lng: 127.1139, zoom: 12 },
+                "아산시": { lat: 36.7871, lng: 127.0020, zoom: 12 }
+            }},
+            "전라북도": { lat: 35.7175, lng: 127.1530, zoom: 9, districts: {
+                "전주시": { lat: 35.8200, lng: 127.1087, zoom: 12 },
+                "군산시": { lat: 35.9904, lng: 126.7000, zoom: 12 }
+            }},
+            "전라남도": { lat: 34.8679, lng: 126.9910, zoom: 9, districts: {
+                "여수시": { lat: 34.7600, lng: 127.6600, zoom: 12 },
+                "순천시": { lat: 34.9450, lng: 127.5020, zoom: 12 }
+            }},
+            "경상북도": { lat: 36.5760, lng: 128.5050, zoom: 8, districts: {
+                "포항시": { lat: 36.0312, lng: 129.3519, zoom: 12 },
+                "경주시": { lat: 35.8562, lng: 129.2247, zoom: 12 }
+            }},
+            "경상남도": { lat: 35.2598, lng: 128.6647, zoom: 9, districts: {
+                "창원시": { lat: 35.2384, lng: 128.6925, zoom: 12 },
+                "김해시": { lat: 35.2280, lng: 128.8820, zoom: 12 }
+            }},
+            "제주특별자치도": { lat: 33.4890, lng: 126.5219, zoom: 10, districts: {
+                "제주시": { lat: 33.5097, lng: 126.5219, zoom: 12 },
+                "서귀포시": { lat: 33.2500, lng: 126.5600, zoom: 12 }
+            }}
+        };
         
         // ========== 휴게소 API 연동 함수들 ==========
         
@@ -773,7 +924,7 @@
                         restArea.coordX || restArea.x || restArea.mapX
                     );
                     const name = restArea.restAreaName || restArea.휴게소명 || restArea.name || 
-                               restArea.svarName || restArea.facilityName || `휴게소 ${index + 1}`;
+                                 restArea.svarName || restArea.facilityName || `휴게소 ${index + 1}`;
                     const routeName = restArea.routeName || restArea.노선명 || restArea.routeNo || '';
                     const direction = restArea.direction || restArea.방향 || restArea.gudDirection || '';
                     const address = restArea.address || restArea.주소 || restArea.roadAddr || '';
@@ -1100,6 +1251,9 @@
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
+            document.querySelectorAll('.administrative-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
             
             // 현재 선택 활성화
             const selectedBtn = document.querySelector(`[data-category="${category}"]`);
@@ -1108,7 +1262,6 @@
             }
             
             currentCategory = category;
-            document.getElementById('currentCategoryDisplay').textContent = `현재 카테고리: ${category}`;
             
             // 휴게소 카테고리인 경우 실시간 API에서 데이터 로드
             if (category === '휴게소') {
@@ -1741,7 +1894,7 @@
             }
         }
         
-        // 파일 업로드 처리
+        // 파일 업로드 처리 (기능 유지)
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -1772,7 +1925,7 @@
             reader.readAsArrayBuffer(file);
         }
         
-        // 엑셀 데이터 처리
+        // 엑셀 데이터 처리 (기능 유지)
         function processExcelData(workbook) {
             const sheetNames = workbook.SheetNames;
             
@@ -1798,7 +1951,7 @@
             }
         }
         
-        // 위치 데이터 처리 및 검증
+        // 위치 데이터 처리 및 검증 (기능 유지)
         function processLocationData(data) {
             return data.filter(item => {
                 // 필수 필드 검증
@@ -1823,7 +1976,7 @@
             });
         }
         
-        // 지도에 데이터 표시 (일반 카테고리용, 마커 크기 통일)
+        // 지도에 데이터 표시 (일반 카테고리용, 마커 크기 통일) (기능 유지)
         function displayDataOnMap(data, category) {
             clearMap();
             
@@ -1882,9 +2035,12 @@
                     console.warn('지도 뷰 조정 실패:', error);
                 }
             }
+            document.getElementById('currentCategoryDisplay').innerHTML = `
+                현재 카테고리: ${category} (${data.length}개 표시)
+            `;
         }
         
-        // 팝업 내용 생성
+        // 팝업 내용 생성 (기능 유지)
         function createPopupContent(item, category) {
             const config = CATEGORY_CONFIG[category];
             
@@ -1915,7 +2071,7 @@
             `;
         }
         
-        // 내 위치로 이동
+        // 내 위치로 이동 (기능 유지)
         function moveToMyLocation() {
             const locationBtn = document.querySelector('.location-btn');
             locationBtn.disabled = true;
@@ -1985,7 +2141,7 @@
             );
         }
         
-        // 위치 버튼 초기화
+        // 위치 버튼 초기화 (기능 유지)
         function resetLocationButton() {
             const locationBtn = document.querySelector('.location-btn');
             if (locationBtn) {
@@ -1994,7 +2150,7 @@
             }
         }
         
-        // 플로팅 메시지 표시
+        // 플로팅 메시지 표시 (기능 유지)
         function showFloatingMessage(message, type = 'loading', duration = 5000) {
             const existingMsg = document.querySelector('.floating-message');
             if (existingMsg) existingMsg.remove();
@@ -2023,7 +2179,7 @@
             return messageDiv;
         }
         
-        // 로딩 스피너 표시
+        // 로딩 스피너 표시 (기능 유지)
         function showLoadingSpinner(message) {
             const spinner = document.createElement('div');
             spinner.className = 'loading-spinner';
@@ -2035,7 +2191,7 @@
             document.body.appendChild(spinner);
         }
         
-        // 로딩 스피너 숨기기
+        // 로딩 스피너 숨기기 (기능 유지)
         function hideLoadingSpinner() {
             const spinner = document.getElementById('loadingSpinner');
             if (spinner) {
@@ -2043,9 +2199,10 @@
             }
         }
         
-        // 파일 드래그 앤 드롭 처리
+        // 파일 드래그 앤 드롭 처리 (기능 유지, 현재 HTML에서 사용되지 않음)
         function setupDragAndDrop() {
             const uploadZone = document.querySelector('.file-upload-zone');
+            if (!uploadZone) return; // 요소가 없으면 함수 종료
             
             uploadZone.addEventListener('dragover', (e) => {
                 e.preventDefault();
@@ -2064,13 +2221,15 @@
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     const fileInput = document.getElementById('fileInput');
-                    fileInput.files = files;
-                    handleFileUpload({ target: { files: files } });
+                    if (fileInput) { // fileInput이 존재할 때만 처리
+                        fileInput.files = files;
+                        handleFileUpload({ target: { files: files } });
+                    }
                 }
             });
         }
         
-        // 창 크기 변경 처리
+        // 창 크기 변경 처리 (기능 유지)
         function handleResize() {
             window.addEventListener('resize', () => {
                 if (map) {
@@ -2082,16 +2241,135 @@
                 // 모바일/데스크톱 전환 시 사이드바 상태 재설정
                 const sidebar = document.getElementById('sidebar');
                 const mainContainer = document.querySelector('.main-container');
+                const toggleBtn = document.querySelector('.menu-toggle i'); // 토글 버튼 아이콘
                 const isMobile = window.innerWidth <= 768;
                 
                 if (isMobile) {
-                    mainContainer.classList.remove('sidebar-closed');
-                } else if (sidebar.classList.contains('closed')) {
-                    mainContainer.classList.add('sidebar-closed');
+                    // 모바일에서는 항상 닫힌 상태로 시작 (혹은 닫히게)
+                    sidebar.classList.add('closed');
+                    mainContainer.classList.remove('sidebar-closed'); // 모바일에서는 패딩 적용 안함
+                    toggleBtn.classList.remove('fa-times');
+                    toggleBtn.classList.add('fa-bars');
+                } else {
+                    // 데스크톱에서는 초기 로드 상태 유지
+                    if (sidebar.classList.contains('closed')) {
+                        mainContainer.classList.add('sidebar-closed');
+                    } else {
+                        mainContainer.classList.remove('sidebar-closed');
+                    }
+                    toggleBtn.classList.remove('fa-times');
+                    toggleBtn.classList.add('fa-bars'); // 기본은 햄버거 메뉴
+                    if (!sidebar.classList.contains('closed')) {
+                        toggleBtn.classList.remove('fa-bars');
+                        toggleBtn.classList.add('fa-times'); // 열려있으면 X
+                    }
                 }
             });
         }
-        
+
+        // ===========================================
+        // 새롭게 추가된 행정구역 선택 기능
+        // ===========================================
+
+        // 시/도 목록 로드
+        function loadProvinces() {
+            const provinceListDiv = document.getElementById('province-list');
+            provinceListDiv.innerHTML = ''; // 기존 목록 초기화
+            document.getElementById('district-list').innerHTML = ''; // 시군구 목록 초기화
+
+            // '전국' 버튼 추가
+            const allKoreaBtn = document.createElement('button');
+            allKoreaBtn.className = 'administrative-btn';
+            allKoreaBtn.textContent = '전국';
+            allKoreaBtn.onclick = () => selectAdministrativeDivision('전국');
+            provinceListDiv.appendChild(allKoreaBtn);
+            
+            Object.keys(KOREA_ADMINISTRATIVE_DIVISIONS).forEach(provinceName => {
+                const button = document.createElement('button');
+                button.className = 'administrative-btn';
+                button.textContent = provinceName;
+                button.setAttribute('data-province', provinceName);
+                button.onclick = () => selectProvince(provinceName);
+                provinceListDiv.appendChild(button);
+            });
+        }
+
+        // 시/도 선택 시 시/군/구 목록 표시 및 지도 이동
+        function selectProvince(provinceName) {
+            // 모든 시/도 버튼 비활성화
+            document.querySelectorAll('#province-list .administrative-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // 현재 선택된 시/도 버튼 활성화
+            const selectedProvinceBtn = document.querySelector(`#province-list [data-province="${provinceName}"]`);
+            if (selectedProvinceBtn) {
+                selectedProvinceBtn.classList.add('active');
+            }
+
+            currentSelectedProvince = provinceName;
+            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            
+            if (provinceInfo) {
+                map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
+                updateCurrentCategoryDisplay(`지도 영역: ${provinceName}`);
+                displayDistricts(provinceName);
+            } else if (provinceName === '전국') {
+                map.setView([36.5, 127.5], 7); // 전국 기준 좌표
+                updateCurrentCategoryDisplay(`지도 영역: 전국`);
+                document.getElementById('district-list').innerHTML = ''; // 시군구 목록 초기화
+            }
+        }
+
+        // 시/군/구 목록 표시
+        function displayDistricts(provinceName) {
+            const districtListDiv = document.getElementById('district-list');
+            districtListDiv.innerHTML = ''; // 기존 목록 초기화
+            
+            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            if (provinceInfo && provinceInfo.districts) {
+                // '전체 (시도명)' 버튼 추가
+                const allDistrictBtn = document.createElement('button');
+                allDistrictBtn.className = 'administrative-btn district-btn';
+                allDistrictBtn.textContent = `전체 (${provinceName})`;
+                allDistrictBtn.onclick = () => selectProvince(provinceName); // 전체 선택 시 시도 줌으로 복귀
+                districtListDiv.appendChild(allDistrictBtn);
+
+                Object.keys(provinceInfo.districts).forEach(districtName => {
+                    const button = document.createElement('button');
+                    button.className = 'administrative-btn district-btn'; // 시군구 버튼은 조금 더 들여쓰기
+                    button.textContent = districtName;
+                    button.setAttribute('data-district', districtName);
+                    button.onclick = () => selectDistrict(provinceName, districtName);
+                    districtListDiv.appendChild(button);
+                });
+            }
+        }
+
+        // 시/군/구 선택 시 해당 시/군/구로 줌인
+        function selectDistrict(provinceName, districtName) {
+            // 모든 시/군/구 버튼 비활성화
+            document.querySelectorAll('#district-list .administrative-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // 현재 선택된 시/군/구 버튼 활성화
+            const selectedDistrictBtn = document.querySelector(`#district-list [data-district="${districtName}"]`);
+            if (selectedDistrictBtn) {
+                selectedDistrictBtn.classList.add('active');
+            }
+            
+            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            if (provinceInfo && provinceInfo.districts && provinceInfo.districts[districtName]) {
+                const districtInfo = provinceInfo.districts[districtName];
+                map.setView([districtInfo.lat, districtInfo.lng], districtInfo.zoom);
+                updateCurrentCategoryDisplay(`지도 영역: ${provinceName} ${districtName}`);
+            }
+        }
+
+        // 지도 오버레이 텍스트 업데이트
+        function updateCurrentCategoryDisplay(text) {
+            document.getElementById('currentCategoryDisplay').innerHTML = text;
+        }
+
         // 페이지 로드 시 초기화 (디버깅 강화)
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 좋아할지도 초기화 시작...');
@@ -2122,16 +2400,41 @@
             // 이벤트 리스너 설정
             handleResize();
             
-            // 휴게소 카테고리 자동 선택 및 API 테스트
-            console.log('🛣️ 휴게소 카테고리 자동 선택 중...');
-            setTimeout(() => {
-                console.log('🔄 휴게소 카테고리 선택 실행');
-                selectCategory('휴게소');
-            }, 1000); // 1초 후에 실행하여 충분한 초기화 시간 확보
+            // 행정구역 선택 기능 초기 로드
+            loadProvinces();
             
+            // 초기 지도 뷰를 전국으로 설정 (기본값)
+            selectAdministrativeDivision('전국'); // 전국 선택 시 초기 지도 상태 표시
+
             console.log('✅ 좋아할지도 초기화 완료!');
-            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 잠시 후 휴게소 데이터가 로드됩니다...', 'success', 3000);
+            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 행정구역을 선택해주세요.', 'success', 3000);
+            
+            // 사이드바 기본 닫기 (모바일에서만 적용되도록)
+            if (window.innerWidth <= 768) {
+                toggleSidebar(); // 햄버거 아이콘으로 시작
+            }
         });
+
+        // 전국 선택 버튼 클릭 핸들러 (새로 추가)
+        function selectAdministrativeDivision(region) {
+            // 모든 행정구역 버튼 비활성화 (시도 및 시군구 모두)
+            document.querySelectorAll('.administrative-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // '전국' 버튼 활성화
+            const allKoreaBtn = document.querySelector('#province-list .administrative-btn');
+            if (allKoreaBtn && allKoreaBtn.textContent === '전국') {
+                allKoreaBtn.classList.add('active');
+            }
+
+            currentSelectedProvince = null; // 시도 선택 상태 초기화
+            document.getElementById('district-list').innerHTML = ''; // 시군구 목록 초기화
+
+            map.setView([36.5, 127.5], 7); // 대한민국 전체 뷰
+            updateCurrentCategoryDisplay(`지도 영역: ${region}`);
+        }
     </script>
 </body>
 </html>
+```

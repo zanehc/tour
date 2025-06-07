@@ -77,14 +77,14 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            transform: translateX(-100%);
+            transform: translateX(0);
             transition: transform 0.3s ease;
             position: relative;
             z-index: 999;
         }
         
-        .sidebar.open {
-            transform: translateX(0);
+        .sidebar.closed {
+            transform: translateX(-100%);
         }
         
         /* 사이드바 헤더 */
@@ -294,6 +294,11 @@
                 width: 280px;
                 z-index: 1000;
                 box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+                transform: translateX(0);
+            }
+            
+            .sidebar.closed {
+                transform: translateX(-100%);
             }
             
             .header h1 {
@@ -356,7 +361,7 @@
             <i class="fas fa-heart"></i> 좋아할지도
         </h1>
         <button class="menu-toggle" onclick="toggleSidebar()">
-            <i class="fas fa-bars"></i>
+            <i class="fas fa-times"></i>
         </button>
     </div>
     
@@ -481,12 +486,14 @@
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.menu-toggle i');
             
-            sidebar.classList.toggle('open');
-            
-            if (sidebar.classList.contains('open')) {
+            if (sidebar.classList.contains('closed')) {
+                // 사이드바 열기
+                sidebar.classList.remove('closed');
                 toggleBtn.classList.remove('fa-bars');
                 toggleBtn.classList.add('fa-times');
             } else {
+                // 사이드바 닫기
+                sidebar.classList.add('closed');
                 toggleBtn.classList.remove('fa-times');
                 toggleBtn.classList.add('fa-bars');
             }
@@ -504,7 +511,7 @@
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.querySelector('.menu-toggle i');
             
-            sidebar.classList.remove('open');
+            sidebar.classList.add('closed');
             toggleBtn.classList.remove('fa-times');
             toggleBtn.classList.add('fa-bars');
             
@@ -904,6 +911,11 @@
             // 이벤트 리스너 설정
             setupDragAndDrop();
             handleResize();
+            
+            // 헤더 버튼 초기 상태 설정 (사이드바가 열려있으므로 X 표시)
+            const toggleBtn = document.querySelector('.menu-toggle i');
+            toggleBtn.classList.remove('fa-bars');
+            toggleBtn.classList.add('fa-times');
             
             console.log('✅ 좋아할지도 초기화 완료!');
             showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 왼쪽 메뉴에서 카테고리를 선택하고 엑셀 파일을 업로드해보세요.', 'success', 5000);

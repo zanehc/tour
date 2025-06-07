@@ -125,30 +125,68 @@
             font-weight: 600;
         }
         
-        /* 카테고리 섹션 그룹화 */
+        /* 카테고리 섹션 그룹화 (테두리 추가) */
         .category-section {
             margin-bottom: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            background: #fafbfc;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .category-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
         }
         
         .category-section-title {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 10px 15px;
-            margin: 0 0 12px 0;
-            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 0;
             font-size: 14px;
             font-weight: 600;
-            text-align: center;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .category-section-title:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .category-section-title-left {
+            display: flex;
+            align-items: center;
             gap: 8px;
+        }
+        
+        .category-section-toggle {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+        
+        .category-section-toggle.collapsed {
+            transform: rotate(-90deg);
         }
         
         .category-section-content {
             display: flex;
             flex-direction: column;
             gap: 8px;
+            padding: 15px;
+            background: white;
+            max-height: 500px;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .category-section-content.collapsed {
+            max-height: 0;
+            padding: 0 15px;
         }
         
         /* 카테고리 버튼들 */
@@ -419,11 +457,14 @@
             <div class="category-buttons">
                 <!-- 생활지도 섹션 -->
                 <div class="category-section">
-                    <div class="category-section-title">
-                        <i class="fas fa-home"></i>
-                        생활지도
+                    <div class="category-section-title" onclick="toggleCategorySection('living-map')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-home"></i>
+                            생활지도
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="living-map-toggle"></i>
                     </div>
-                    <div class="category-section-content">
+                    <div class="category-section-content" id="living-map-content">
                         <button class="category-btn" data-category="휴게소" onclick="selectCategory('휴게소')">
                             <i class="fas fa-gas-pump"></i>
                             <span>휴게소</span>
@@ -439,9 +480,9 @@
                             <span>숙박</span>
                         </button>
                         
-                        <button class="category-btn" data-category="축제" onclick="selectCategory('축제')">
-                            <i class="fas fa-calendar-alt"></i>
-                            <span>축제</span>
+                        <button class="category-btn" data-category="주유소" onclick="selectCategory('주유소')">
+                            <i class="fas fa-gas-pump"></i>
+                            <span>주유소</span>
                         </button>
                         
                         <button class="category-btn" data-category="어린이" onclick="selectCategory('어린이')">
@@ -453,11 +494,14 @@
 
                 <!-- 밈지도 섹션 -->
                 <div class="category-section">
-                    <div class="category-section-title">
-                        <i class="fas fa-fire"></i>
-                        밈지도
+                    <div class="category-section-title" onclick="toggleCategorySection('meme-map')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-fire"></i>
+                            밈지도
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="meme-map-toggle"></i>
                     </div>
-                    <div class="category-section-content">
+                    <div class="category-section-content collapsed" id="meme-map-content">
                         <button class="category-btn" data-category="SNS핫플" onclick="selectCategory('SNS핫플')">
                             <i class="fas fa-hashtag"></i>
                             <span>SNS핫플</span>
@@ -506,7 +550,7 @@
             '휴게소': { color: '#e74c3c', icon: 'fa-gas-pump' },
             '맛집': { color: '#f39c12', icon: 'fa-utensils' },
             '숙박': { color: '#3498db', icon: 'fa-bed' },
-            '축제': { color: '#9b59b6', icon: 'fa-calendar-alt' },
+            '주유소': { color: '#27ae60', icon: 'fa-gas-pump' },
             '어린이': { color: '#2ecc71', icon: 'fa-child' },
             'SNS핫플': { color: '#e91e63', icon: 'fa-hashtag' },
             '지금이곳은': { color: '#ff5722', icon: 'fa-map-pin' },
@@ -598,7 +642,23 @@
             }, 350);
         }
         
-        // 카테고리 선택
+        // 카테고리 섹션 토글
+        function toggleCategorySection(sectionId) {
+            const content = document.getElementById(`${sectionId}-content`);
+            const toggle = document.getElementById(`${sectionId}-toggle`);
+            
+            if (content.classList.contains('collapsed')) {
+                // 펼치기
+                content.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+            } else {
+                // 접기
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+            }
+        }
+        
+        // 카테고리 선택 (주유소 추가)
         function selectCategory(category) {
             // 이전 선택 해제
             document.querySelectorAll('.category-btn').forEach(btn => {
@@ -624,6 +684,12 @@
                 return;
             }
             
+            // 주유소 카테고리 처리
+            if (category === '주유소') {
+                displayGasStationData();
+                return;
+            }
+            
             // 밈지도 카테고리 처리
             if (['SNS핫플', '지금이곳은', '이달의축제'].includes(category)) {
                 displayMemeMapData(category);
@@ -635,8 +701,123 @@
                 displayDataOnMap(allData[category], category);
             } else {
                 clearMap();
-                showFloatingMessage(`${category} 데이터가 없습니다. 준비 중입니다.`, 'error', 3000);
+                showFloatingMessage(`${category} 데이터를 준비 중입니다.`, 'error', 3000);
             }
+        }
+        
+        // 주유소 데이터 표시
+        function displayGasStationData() {
+            clearMap();
+            
+            // 샘플 주유소 데이터
+            const gasStationData = [
+                { name: "서울 강남 주유소", x: 127.0276, y: 37.4979, brand: "SK에너지", price: "1,580원/L" },
+                { name: "부산 해운대 주유소", x: 129.1603, y: 35.1587, brand: "GS칼텍스", price: "1,575원/L" },
+                { name: "대구 동성로 주유소", x: 128.5943, y: 35.8681, brand: "현대오일뱅크", price: "1,570원/L" },
+                { name: "인천 송도 주유소", x: 126.6408, y: 37.3895, brand: "S-OIL", price: "1,585원/L" },
+                { name: "광주 상무지구 주유소", x: 126.8506, y: 35.1537, brand: "SK에너지", price: "1,572원/L" },
+                { name: "대전 유성 주유소", x: 127.3563, y: 36.3624, brand: "GS칼텍스", price: "1,578원/L" },
+                { name: "울산 남구 주유소", x: 129.3153, y: 35.5383, brand: "현대오일뱅크", price: "1,568원/L" },
+                { name: "경기 수원 주유소", x: 127.0286, y: 37.2636, brand: "S-OIL", price: "1,582원/L" },
+                { name: "강원 춘천 주유소", x: 127.7312, y: 37.8813, brand: "SK에너지", price: "1,590원/L" },
+                { name: "제주 제주시 주유소", x: 126.5219, y: 33.4890, brand: "GS칼텍스", price: "1,595원/L" },
+                { name: "전북 전주 주유소", x: 127.1488, y: 35.8242, brand: "현대오일뱅크", price: "1,573원/L" },
+                { name: "경북 경주 주유소", x: 129.2249, y: 35.8422, brand: "S-OIL", price: "1,576원/L" },
+                { name: "충남 천안 주유소", x: 127.1522, y: 36.8151, brand: "SK에너지", price: "1,579원/L" },
+                { name: "경남 창원 주유소", x: 128.5735, y: 35.1982, brand: "GS칼텍스", price: "1,574원/L" },
+                { name: "전남 목포 주유소", x: 126.4429, y: 34.8120, brand: "현대오일뱅크", price: "1,571원/L" }
+            ];
+            
+            const config = CATEGORY_CONFIG['주유소'];
+            let bounds = [];
+            
+            gasStationData.forEach((station, index) => {
+                try {
+                    const lat = parseFloat(station.y);
+                    const lng = parseFloat(station.x);
+                    
+                    if (isNaN(lat) || isNaN(lng)) return;
+                    
+                    const marker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `
+                                <div style="
+                                    background-color: ${config.color}; 
+                                    color: white; 
+                                    border-radius: 50%; 
+                                    width: 18px; 
+                                    height: 18px; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    border: 2px solid white; 
+                                    box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+                                    font-size: 8px;
+                                    cursor: pointer;
+                                ">
+                                    <i class="fas ${config.icon}"></i>
+                                </div>
+                            `,
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        })
+                    });
+                    
+                    const popupContent = `
+                        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 280px; line-height: 1.4;">
+                            <div style="background: ${config.color}; color: white; padding: 10px 12px; margin: -9px -12px 12px -12px; border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas ${config.icon}" style="font-size: 16px;"></i>
+                                <div>
+                                    <div style="font-weight: 600; font-size: 13px;">주유소</div>
+                                </div>
+                            </div>
+                            
+                            <div style="padding: 0 2px;">
+                                <h3 style="margin: 0 0 8px 0; color: #333; font-size: 16px; font-weight: 600; line-height: 1.3;">
+                                    ${station.name}
+                                </h3>
+                                
+                                <div style="margin-bottom: 8px;">
+                                    <div style="background: #f8f9fa; padding: 6px 8px; border-radius: 6px; margin-bottom: 4px;">
+                                        <i class="fas fa-gas-pump" style="color: #27ae60; margin-right: 6px;"></i>
+                                        <span style="font-size: 12px; color: #333; font-weight: 500;">${station.brand}</span>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: #e8f5e8; padding: 8px; border-radius: 6px; border-left: 3px solid ${config.color}; font-size: 12px; color: #333;">
+                                    <i class="fas fa-won-sign" style="margin-right: 4px; color: #27ae60;"></i>
+                                    <strong>휘발유: ${station.price}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    marker.bindPopup(popupContent, {
+                        maxWidth: 300,
+                        className: 'custom-popup'
+                    });
+                    
+                    markersLayer.addLayer(marker);
+                    bounds.push([lat, lng]);
+                } catch (error) {
+                    console.error(`주유소 마커 생성 실패 (${index}):`, error);
+                }
+            });
+            
+            // 지도 뷰 조정
+            if (bounds.length > 0) {
+                try {
+                    const group = new L.featureGroup(markersLayer.getLayers());
+                    map.fitBounds(group.getBounds().pad(0.1));
+                } catch (error) {
+                    console.warn('지도 뷰 조정 실패:', error);
+                }
+            }
+            
+            document.getElementById('currentCategoryDisplay').innerHTML = `
+                현재 카테고리: 주유소 (${gasStationData.length}개 표시)
+            `;
         }
         
         // 밈지도 데이터 표시

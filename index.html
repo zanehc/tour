@@ -115,7 +115,7 @@
             padding: 20px;
             border-bottom: 1px solid #e1e5e9;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
         }
         
@@ -123,21 +123,6 @@
             color: #333;
             font-size: 1.1rem;
             font-weight: 600;
-        }
-        
-        .sidebar-close {
-            background: #f5f5f5;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            color: #666;
-            transition: background-color 0.3s;
-        }
-        
-        .sidebar-close:hover {
-            background: #e9e9e9;
         }
         
         /* 카테고리 버튼들 */
@@ -182,43 +167,6 @@
             font-size: 18px;
             width: 20px;
             text-align: center;
-        }
-        
-        /* 파일 업로드 영역 */
-        .file-upload-area {
-            padding: 20px;
-            border-top: 1px solid #e1e5e9;
-            background: #f8f9fa;
-        }
-        
-        .file-upload-zone {
-            border: 2px dashed #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: white;
-        }
-        
-        .file-upload-zone:hover {
-            border-color: #667eea;
-            background: #f8f9ff;
-        }
-        
-        .file-upload-zone.dragover {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-        
-        .file-input {
-            display: none;
-        }
-        
-        .upload-text {
-            color: #666;
-            font-size: 13px;
-            margin-top: 8px;
         }
         
         /* 지도 컨테이너 */
@@ -436,9 +384,6 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3><i class="fas fa-map-marked-alt"></i> 카테고리 선택</h3>
-                <button class="sidebar-close" onclick="closeSidebar()">
-                    <i class="fas fa-times"></i>
-                </button>
             </div>
             
             <div class="category-buttons">
@@ -466,17 +411,6 @@
                     <i class="fas fa-child"></i>
                     <span>어린이</span>
                 </button>
-            </div>
-            
-            <div class="file-upload-area">
-                <div class="file-upload-zone" onclick="document.getElementById('fileInput').click()">
-                    <i class="fas fa-file-excel" style="font-size: 24px; color: #28a745;"></i>
-                    <div class="upload-text">
-                        엑셀 파일을 선택하거나<br>
-                        여기에 드래그하세요
-                    </div>
-                </div>
-                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
             </div>
         </div>
         
@@ -534,8 +468,13 @@
                 map = L.map('map', {
                     center: [36.5, 127.5],
                     zoom: 7,
-                    zoomControl: true
+                    zoomControl: false // 기본 줌 컨트롤 비활성화
                 });
+                
+                // 줌 컨트롤을 오른쪽에 추가
+                L.control.zoom({
+                    position: 'topright'
+                }).addTo(map);
                 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
@@ -593,27 +532,6 @@
             }, 350);
         }
         
-        // 사이드바 닫기
-        function closeSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const mainContainer = document.querySelector('.main-container');
-            const toggleBtn = document.querySelector('.menu-toggle i');
-            const isMobile = window.innerWidth <= 768;
-            
-            sidebar.classList.add('closed');
-            if (!isMobile) {
-                mainContainer.classList.add('sidebar-closed');
-            }
-            toggleBtn.classList.remove('fa-times');
-            toggleBtn.classList.add('fa-bars');
-            
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize();
-                }
-            }, 350);
-        }
-        
         // 카테고리 선택
         function selectCategory(category) {
             // 이전 선택 해제
@@ -654,23 +572,30 @@
             showLoadingSpinner('식당 데이터를 불러오는 중...');
             
             try {
-                // rest_list.xlsx 파일 읽기
-                const fileData = await window.fs.readFile('rest_list.xlsx');
-                const workbook = XLSX.read(fileData, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                // rest_list.xlsx 파일 읽기 시도
+                try {
+                    const fileData = await window.fs.readFile('rest_list.xlsx');
+                    const workbook = XLSX.read(fileData, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // 유효한 데이터 필터링
+                    restaurantData = jsonData.filter(item => {
+                        const lat = parseFloat(item.y);
+                        const lng = parseFloat(item.x);
+                        return !isNaN(lat) && !isNaN(lng) && 
+                               lat >= 33 && lat <= 39 && 
+                               lng >= 124 && lng <= 132 &&
+                               item.식당이름;
+                    });
+                    
+                    console.log(`외부 파일에서 식당 데이터 로드 완료: ${restaurantData.length}개`);
+                } catch (fileError) {
+                    console.log('외부 파일 로드 실패, 샘플 데이터 사용');
+                    // 파일이 없는 경우 샘플 데이터 사용
+                    restaurantData = getSampleRestaurantData();
+                }
                 
-                // 유효한 데이터 필터링
-                restaurantData = jsonData.filter(item => {
-                    const lat = parseFloat(item.y);
-                    const lng = parseFloat(item.x);
-                    return !isNaN(lat) && !isNaN(lng) && 
-                           lat >= 33 && lat <= 39 && 
-                           lng >= 124 && lng <= 132 &&
-                           item.식당이름;
-                });
-                
-                console.log(`식당 데이터 로드 완료: ${restaurantData.length}개`);
                 hideLoadingSpinner();
                 displayRestaurantData();
                 showFloatingMessage(`${restaurantData.length}개의 식당 데이터를 불러왔습니다!`, 'success', 3000);
@@ -678,8 +603,193 @@
             } catch (error) {
                 console.error('식당 데이터 로드 실패:', error);
                 hideLoadingSpinner();
-                showFloatingMessage('식당 데이터 파일(rest_list.xlsx)을 찾을 수 없습니다. 파일이 같은 폴더에 있는지 확인해주세요.', 'error', 5000);
+                // 에러 시에도 샘플 데이터 사용
+                restaurantData = getSampleRestaurantData();
+                displayRestaurantData();
+                showFloatingMessage(`샘플 데이터 ${restaurantData.length}개를 표시합니다. 실제 데이터를 사용하려면 rest_list.xlsx 파일을 같은 폴더에 위치시켜주세요.`, 'error', 5000);
             }
+        }
+        
+        // 샘플 식당 데이터 생성
+        function getSampleRestaurantData() {
+            return [
+                {
+                    qc_id: 3494,
+                    식당이름: "안단테153",
+                    시도: "경기도",
+                    시군구: "파주시",
+                    주소: "경기도 파주시 시민회관길 15 안단테153 1,2층",
+                    카테고리: "카페",
+                    x: 126.7792824,
+                    y: 37.7589759,
+                    방문횟수: 161
+                },
+                {
+                    qc_id: 4322,
+                    식당이름: "태평식당",
+                    시도: "전라남도", 
+                    시군구: "목포시",
+                    주소: "전라남도 목포시 후광대로105번길 11-8",
+                    카테고리: "한식",
+                    x: 126.4429232,
+                    y: 34.8119999,
+                    방문횟수: 141
+                },
+                {
+                    qc_id: 4644,
+                    식당이름: "태평식당",
+                    시도: "충청남도",
+                    시군구: "홍성군", 
+                    주소: "충청남도 홍성군 홍성읍 조양로 109-5",
+                    카테고리: "한식",
+                    x: 126.6620999,
+                    y: 36.602682,
+                    방문횟수: 141
+                },
+                {
+                    qc_id: 13642,
+                    식당이름: "태평식당",
+                    시도: "충남",
+                    시군구: "논산시",
+                    주소: "충청남도 논산시 강경읍 옥녀봉로35번길 9",
+                    카테고리: "해물요리",
+                    메뉴: "복어요리",
+                    x: 127.0165149,
+                    y: 36.1616794,
+                    방문횟수: 141
+                },
+                {
+                    qc_id: 3037,
+                    식당이름: "왓커피 백제대로점",
+                    시도: "전라북도",
+                    시군구: "전주시",
+                    주소: "전북특별자치도 전주시 덕진구 백제대로 746 1층 왓커피",
+                    카테고리: "카페",
+                    x: 127.1504937,
+                    y: 35.8456564,
+                    방문횟수: 120
+                },
+                {
+                    qc_id: 1001,
+                    식당이름: "명동교자",
+                    시도: "서울특별시",
+                    시군구: "중구",
+                    주소: "서울특별시 중구 명동10길 29",
+                    카테고리: "한식",
+                    메뉴: "칼국수, 만두",
+                    x: 126.9844,
+                    y: 37.5636,
+                    방문횟수: 89
+                },
+                {
+                    qc_id: 1002,
+                    식당이름: "스타벅스 강남역점",
+                    시도: "서울특별시",
+                    시군구: "강남구",
+                    주소: "서울특별시 강남구 강남대로 390",
+                    카테고리: "카페",
+                    메뉴: "아메리카노, 라떼",
+                    x: 127.0276,
+                    y: 37.4979,
+                    방문횟수: 156
+                },
+                {
+                    qc_id: 1003,
+                    식당이름: "부산돼지국밥",
+                    시도: "부산광역시",
+                    시군구: "부산진구", 
+                    주소: "부산광역시 부산진구 중앙대로 692",
+                    카테고리: "한식",
+                    메뉴: "돼지국밥, 순대국",
+                    x: 129.0756,
+                    y: 35.1796,
+                    방문횟수: 78
+                },
+                {
+                    qc_id: 1004,
+                    식당이름: "제주흑돼지",
+                    시도: "제주특별자치도",
+                    시군구: "제주시",
+                    주소: "제주특별자치도 제주시 연동 272-20",
+                    카테고리: "한식",
+                    메뉴: "흑돼지 구이",
+                    x: 126.5219,
+                    y: 33.4890,
+                    방문횟수: 45
+                },
+                {
+                    qc_id: 1005,
+                    식당이름: "광주송정떡갈비",
+                    시도: "광주광역시",
+                    시군구: "광산구",
+                    주소: "광주광역시 광산구 송정로 8",
+                    카테고리: "한식",
+                    메뉴: "떡갈비, 갈비탕",
+                    x: 126.7965,
+                    y: 35.1176,
+                    방문횟수: 23
+                },
+                {
+                    qc_id: 1006,
+                    식당이름: "대전성심당",
+                    시도: "대전광역시", 
+                    시군구: "중구",
+                    주소: "대전광역시 중구 대종로 480번길 15",
+                    카테고리: "베이커리",
+                    메뉴: "튀김소보로, 부추빵",
+                    x: 127.4216,
+                    y: 36.3398,
+                    방문횟수: 67
+                },
+                {
+                    qc_id: 1007,
+                    식당이름: "인천차이나타운",
+                    시도: "인천광역시",
+                    시군구: "중구",
+                    주소: "인천광역시 중구 차이나타운로 59",
+                    카테고리: "중식",
+                    메뉴: "짜장면, 탕수육",
+                    x: 126.6167,
+                    y: 37.4760,
+                    방문횟수: 134
+                },
+                {
+                    qc_id: 1008,
+                    식당이름: "춘천닭갈비골목",
+                    시도: "강원특별자치도",
+                    시군구: "춘천시",
+                    주소: "강원특별자치도 춘천시 금강로 62",
+                    카테고리: "한식",
+                    메뉴: "닭갈비, 막국수",
+                    x: 127.7312,
+                    y: 37.8813,
+                    방문횟수: 92
+                },
+                {
+                    qc_id: 1009,
+                    식당이름: "경주쌈밥",
+                    시도: "경상북도",
+                    시군구: "경주시",
+                    주소: "경상북도 경주시 첨성로 104",
+                    카테고리: "한식",
+                    메뉴: "쌈밥정식, 된장찌개",
+                    x: 129.2249,
+                    y: 35.8422,
+                    방문횟수: 38
+                },
+                {
+                    qc_id: 1010,
+                    식당이름: "울산고래불고기",
+                    시도: "울산광역시",
+                    시군구: "남구",
+                    주소: "울산광역시 남구 삼산로 200",
+                    카테고리: "한식",
+                    메뉴: "고래불고기, 고래회",
+                    x: 129.3114,
+                    y: 35.5384,
+                    방문횟수: 12
+                }
+            ];
         }
         
         // 식당 데이터 지도에 표시 (성능 최적화)
@@ -691,16 +801,16 @@
             let bounds = [];
             let addedCount = 0;
             
-            // 줌 레벨에 따른 표시 개수 조정
-            const zoomLevel = map.getZoom();
+            // 줌 레벨에 따른 표시 개수 조정 (현재 줌 레벨이 없으면 기본값 사용)
+            const zoomLevel = map ? map.getZoom() : 7;
             let maxDisplay = 2000; // 기본값
             
             if (zoomLevel < 8) {
-                maxDisplay = 500; // 전국 뷰에서는 적게
+                maxDisplay = Math.min(500, restaurantData.length); // 전국 뷰에서는 적게
             } else if (zoomLevel < 10) {
-                maxDisplay = 1000; // 지역 뷰
+                maxDisplay = Math.min(1000, restaurantData.length); // 지역 뷰
             } else {
-                maxDisplay = 2000; // 상세 뷰에서는 많이
+                maxDisplay = Math.min(2000, restaurantData.length); // 상세 뷰에서는 많이
             }
             
             // 방문횟수순으로 정렬하여 인기 맛집을 우선 표시
@@ -712,6 +822,8 @@
                     const lat = parseFloat(restaurant.y);
                     const lng = parseFloat(restaurant.x);
                     const visitCount = parseInt(restaurant.방문횟수) || 0;
+                    
+                    if (isNaN(lat) || isNaN(lng)) return;
                     
                     const markerConfig = getRestaurantMarkerConfig(visitCount);
                     
@@ -752,11 +864,11 @@
                     
                     // 마커 호버 효과
                     marker.on('mouseover', function() {
-                        this._icon.style.transform = 'scale(1.1)';
+                        if (this._icon) this._icon.style.transform = 'scale(1.1)';
                     });
                     
                     marker.on('mouseout', function() {
-                        this._icon.style.transform = 'scale(1)';
+                        if (this._icon) this._icon.style.transform = 'scale(1)';
                     });
                     
                     const popupContent = createRestaurantPopup(restaurant);
@@ -793,9 +905,11 @@
                 </small>
             `;
             
-            // 줌 이벤트 리스너 추가
-            map.off('zoomend', handleZoomChange);
-            map.on('zoomend', handleZoomChange);
+            // 줌 이벤트 리스너 추가 (중복 방지)
+            if (map && !map._zoomListenerAdded) {
+                map.on('zoomend', handleZoomChange);
+                map._zoomListenerAdded = true;
+            }
         }
         
         // 줌 레벨 변경 시 마커 재표시
@@ -1242,7 +1356,6 @@
             }
             
             // 이벤트 리스너 설정
-            setupDragAndDrop();
             handleResize();
             
             // 맛집 카테고리 자동 선택 및 데이터 로드

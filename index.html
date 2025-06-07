@@ -125,12 +125,37 @@
             font-weight: 600;
         }
         
+        /* 카테고리 섹션 그룹화 */
+        .category-section {
+            margin-bottom: 20px;
+        }
+        
+        .category-section-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 15px;
+            margin: 0 0 12px 0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .category-section-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
         /* 카테고리 버튼들 */
         .category-buttons {
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
         }
         
         .category-btn {
@@ -148,6 +173,7 @@
             display: flex;
             align-items: center;
             gap: 12px;
+            margin-bottom: 8px;
         }
         
         .category-btn:hover {
@@ -167,6 +193,10 @@
             font-size: 18px;
             width: 20px;
             text-align: center;
+        }
+        
+        .category-section-content .category-btn:last-child {
+            margin-bottom: 0;
         }
         
         /* 지도 컨테이너 */
@@ -387,30 +417,63 @@
             </div>
             
             <div class="category-buttons">
-                <button class="category-btn" data-category="휴게소" onclick="selectCategory('휴게소')">
-                    <i class="fas fa-gas-pump"></i>
-                    <span>휴게소</span>
-                </button>
-                
-                <button class="category-btn" data-category="맛집" onclick="selectCategory('맛집')">
-                    <i class="fas fa-utensils"></i>
-                    <span>맛집</span>
-                </button>
-                
-                <button class="category-btn" data-category="숙박" onclick="selectCategory('숙박')">
-                    <i class="fas fa-bed"></i>
-                    <span>숙박</span>
-                </button>
-                
-                <button class="category-btn" data-category="축제" onclick="selectCategory('축제')">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>축제</span>
-                </button>
-                
-                <button class="category-btn" data-category="어린이" onclick="selectCategory('어린이')">
-                    <i class="fas fa-child"></i>
-                    <span>어린이</span>
-                </button>
+                <!-- 생활지도 섹션 -->
+                <div class="category-section">
+                    <div class="category-section-title">
+                        <i class="fas fa-home"></i>
+                        생활지도
+                    </div>
+                    <div class="category-section-content">
+                        <button class="category-btn" data-category="휴게소" onclick="selectCategory('휴게소')">
+                            <i class="fas fa-gas-pump"></i>
+                            <span>휴게소</span>
+                        </button>
+                        
+                        <button class="category-btn" data-category="맛집" onclick="selectCategory('맛집')">
+                            <i class="fas fa-utensils"></i>
+                            <span>맛집</span>
+                        </button>
+                        
+                        <button class="category-btn" data-category="숙박" onclick="selectCategory('숙박')">
+                            <i class="fas fa-bed"></i>
+                            <span>숙박</span>
+                        </button>
+                        
+                        <button class="category-btn" data-category="축제" onclick="selectCategory('축제')">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>축제</span>
+                        </button>
+                        
+                        <button class="category-btn" data-category="어린이" onclick="selectCategory('어린이')">
+                            <i class="fas fa-child"></i>
+                            <span>어린이</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 밈지도 섹션 -->
+                <div class="category-section">
+                    <div class="category-section-title">
+                        <i class="fas fa-fire"></i>
+                        밈지도
+                    </div>
+                    <div class="category-section-content">
+                        <button class="category-btn" data-category="SNS핫플" onclick="selectCategory('SNS핫플')">
+                            <i class="fas fa-hashtag"></i>
+                            <span>SNS핫플</span>
+                        </button>
+                        
+                        <button class="category-btn" data-category="지금이곳은" onclick="selectCategory('지금이곳은')">
+                            <i class="fas fa-map-pin"></i>
+                            <span>지금이곳은</span>
+                        </button>
+                        
+                        <button class="category-btn" data-category="이달의축제" onclick="selectCategory('이달의축제')">
+                            <i class="fas fa-star"></i>
+                            <span>이달의축제</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -438,23 +501,26 @@
         let allData = {}; // 카테고리별 데이터 저장
         let restaurantData = []; // 식당 데이터 저장
         
-        // 카테고리별 설정
+        // 카테고리별 설정 (확장)
         const CATEGORY_CONFIG = {
             '휴게소': { color: '#e74c3c', icon: 'fa-gas-pump' },
             '맛집': { color: '#f39c12', icon: 'fa-utensils' },
             '숙박': { color: '#3498db', icon: 'fa-bed' },
             '축제': { color: '#9b59b6', icon: 'fa-calendar-alt' },
-            '어린이': { color: '#2ecc71', icon: 'fa-child' }
+            '어린이': { color: '#2ecc71', icon: 'fa-child' },
+            'SNS핫플': { color: '#e91e63', icon: 'fa-hashtag' },
+            '지금이곳은': { color: '#ff5722', icon: 'fa-map-pin' },
+            '이달의축제': { color: '#795548', icon: 'fa-star' }
         };
         
-        // 방문횟수별 마커 설정
+        // 방문횟수별 마커 설정 (크기 통일)
         function getRestaurantMarkerConfig(visitCount) {
             if (visitCount >= 10) {
-                return { color: '#e74c3c', icon: 'fa-utensils' }; // 붉은색
+                return { color: '#e74c3c', icon: 'fa-utensils', size: 18 }; // 붉은색, 통일된 크기
             } else if (visitCount >= 5) {
-                return { color: '#1abc9c', icon: 'fa-utensils' }; // 민트색
+                return { color: '#1abc9c', icon: 'fa-utensils', size: 18 }; // 민트색, 통일된 크기
             } else {
-                return { color: '#2c3e50', icon: 'fa-utensils' }; // 검정색
+                return { color: '#2c3e50', icon: 'fa-utensils', size: 18 }; // 검정색, 통일된 크기
             }
         }
         
@@ -558,13 +624,170 @@
                 return;
             }
             
+            // 밈지도 카테고리 처리
+            if (['SNS핫플', '지금이곳은', '이달의축제'].includes(category)) {
+                displayMemeMapData(category);
+                return;
+            }
+            
             // 기타 카테고리 데이터 표시
             if (allData[category]) {
                 displayDataOnMap(allData[category], category);
             } else {
                 clearMap();
-                showFloatingMessage(`${category} 데이터가 없습니다. 엑셀 파일을 업로드해주세요.`, 'error', 3000);
+                showFloatingMessage(`${category} 데이터가 없습니다. 준비 중입니다.`, 'error', 3000);
             }
+        }
+        
+        // 밈지도 데이터 표시
+        function displayMemeMapData(category) {
+            clearMap();
+            
+            // 샘플 밈지도 데이터
+            const memeData = getMemeMapSampleData(category);
+            
+            if (memeData.length === 0) {
+                showFloatingMessage(`${category} 데이터를 준비 중입니다.`, 'error', 3000);
+                return;
+            }
+            
+            const config = CATEGORY_CONFIG[category];
+            let bounds = [];
+            
+            memeData.forEach((item, index) => {
+                try {
+                    const lat = parseFloat(item.y);
+                    const lng = parseFloat(item.x);
+                    
+                    if (isNaN(lat) || isNaN(lng)) return;
+                    
+                    const marker = L.marker([lat, lng], {
+                        icon: L.divIcon({
+                            className: 'custom-div-icon',
+                            html: `
+                                <div style="
+                                    background-color: ${config.color}; 
+                                    color: white; 
+                                    border-radius: 50%; 
+                                    width: 18px; 
+                                    height: 18px; 
+                                    display: flex; 
+                                    align-items: center; 
+                                    justify-content: center; 
+                                    border: 2px solid white; 
+                                    box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
+                                    font-size: 8px;
+                                    cursor: pointer;
+                                ">
+                                    <i class="fas ${config.icon}"></i>
+                                </div>
+                            `,
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
+                        })
+                    });
+                    
+                    const popupContent = createMemePopup(item, category);
+                    marker.bindPopup(popupContent, {
+                        maxWidth: 300,
+                        className: 'custom-popup'
+                    });
+                    
+                    markersLayer.addLayer(marker);
+                    bounds.push([lat, lng]);
+                } catch (error) {
+                    console.error(`밈지도 마커 생성 실패 (${index}):`, error);
+                }
+            });
+            
+            // 지도 뷰 조정
+            if (bounds.length > 0) {
+                try {
+                    const group = new L.featureGroup(markersLayer.getLayers());
+                    map.fitBounds(group.getBounds().pad(0.1));
+                } catch (error) {
+                    console.warn('지도 뷰 조정 실패:', error);
+                }
+            }
+            
+            document.getElementById('currentCategoryDisplay').innerHTML = `
+                현재 카테고리: ${category} (${memeData.length}개 표시)
+            `;
+        }
+        
+        // 밈지도 샘플 데이터
+        function getMemeMapSampleData(category) {
+            const sampleData = {
+                'SNS핫플': [
+                    { name: "제주 카멜리아힐", x: 126.2734, y: 33.2882, description: "인스타그램 핫플, 동백꽃 명소", hashtag: "#제주여행 #동백꽃" },
+                    { name: "부산 감천문화마을", x: 129.0104, y: 35.0975, description: "알록달록 예쁜 마을", hashtag: "#부산여행 #감천문화마을" },
+                    { name: "경주 대릉원", x: 129.2248, y: 35.8342, description: "고분과 벚꽃의 조화", hashtag: "#경주여행 #벚꽃" },
+                    { name: "서울 북촌한옥마을", x: 126.9834, y: 37.5816, description: "전통 한옥의 아름다움", hashtag: "#서울여행 #한옥마을" },
+                    { name: "강릉 안목해변", x: 128.9189, y: 37.7653, description: "커피거리로 유명한 해변", hashtag: "#강릉여행 #커피" }
+                ],
+                '지금이곳은': [
+                    { name: "여의도 벚꽃축제", x: 126.9244, y: 37.5294, description: "지금 벚꽃이 만개중!", season: "봄" },
+                    { name: "설악산 단풍", x: 128.4656, y: 38.1197, description: "단풍이 절정입니다", season: "가을" },
+                    { name: "한강공원 피크닉", x: 127.0041, y: 37.5326, description: "날씨 좋은 날 피크닉하기 좋아요", season: "봄/가을" },
+                    { name: "부산 해운대", x: 129.1603, y: 35.1587, description: "여름 해수욕장 개장!", season: "여름" },
+                    { name: "대관령 양떼목장", x: 128.7208, y: 37.6871, description: "양떼들이 풀을 뜯고 있어요", season: "사계절" }
+                ],
+                '이달의축제': [
+                    { name: "보령머드축제", x: 126.5633, y: 36.3331, description: "7월 대천해수욕장에서", month: "7월" },
+                    { name: "화천산천어축제", x: 127.7085, y: 38.1063, description: "1월 얼음낚시 체험", month: "1월" },
+                    { name: "진해군항제", x: 128.6828, y: 35.1664, description: "4월 벚꽃축제", month: "4월" },
+                    { name: "안동국제탈춤페스티벌", x: 128.7294, y: 36.5684, description: "9월 전통 탈춤 공연", month: "9월" },
+                    { name: "정선아리랑제", x: 128.6609, y: 37.3804, description: "10월 아리랑의 고장", month: "10월" }
+                ]
+            };
+            
+            return sampleData[category] || [];
+        }
+        
+        // 밈지도 팝업 생성
+        function createMemePopup(item, category) {
+            const config = CATEGORY_CONFIG[category];
+            
+            return `
+                <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 280px; line-height: 1.4;">
+                    <div style="background: ${config.color}; color: white; padding: 10px 12px; margin: -9px -12px 12px -12px; border-radius: 8px 8px 0 0; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas ${config.icon}" style="font-size: 16px;"></i>
+                        <div>
+                            <div style="font-weight: 600; font-size: 13px;">${category}</div>
+                        </div>
+                    </div>
+                    
+                    <div style="padding: 0 2px;">
+                        <h3 style="margin: 0 0 8px 0; color: #333; font-size: 16px; font-weight: 600; line-height: 1.3;">
+                            ${item.name}
+                        </h3>
+                        
+                        <div style="margin-bottom: 8px; color: #666; font-size: 12px;">
+                            ${item.description}
+                        </div>
+                        
+                        ${item.hashtag ? `
+                            <div style="margin-bottom: 8px; color: #667eea; font-size: 11px; font-weight: 500;">
+                                ${item.hashtag}
+                            </div>
+                        ` : ''}
+                        
+                        ${item.season ? `
+                            <div style="background: #f0f4ff; padding: 6px 8px; border-radius: 6px; border-left: 3px solid ${config.color}; font-size: 11px; color: #555;">
+                                <i class="fas fa-leaf" style="margin-right: 4px;"></i>
+                                추천 시기: ${item.season}
+                            </div>
+                        ` : ''}
+                        
+                        ${item.month ? `
+                            <div style="background: #fff3e0; padding: 6px 8px; border-radius: 6px; border-left: 3px solid ${config.color}; font-size: 11px; color: #555;">
+                                <i class="fas fa-calendar" style="margin-right: 4px;"></i>
+                                개최 시기: ${item.month}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
         }
         
         // 식당 데이터 로드
@@ -610,14 +833,26 @@
             }
         }
         
-        // 식당 데이터 로드
+        // 식당 데이터 로드 (브라우저 환경 개선)
         async function loadRestaurantData() {
             showLoadingSpinner('식당 데이터를 불러오는 중...');
             
             try {
-                // rest_list.xlsx 파일 읽기 시도
+                console.log('🍽️ 맛집 데이터 로딩 시작...');
+                
+                // 브라우저 환경에서는 window.fs가 없으므로 바로 샘플 데이터 사용
+                if (typeof window.fs === 'undefined') {
+                    console.log('브라우저 환경 감지: 샘플 데이터 사용');
+                    restaurantData = getExpandedSampleData();
+                    hideLoadingSpinner();
+                    displayRestaurantData();
+                    showFloatingMessage(`📍 ${restaurantData.length}개의 샘플 맛집 데이터를 표시합니다.`, 'success', 4000);
+                    return;
+                }
+                
+                // Claude 아티팩트 환경에서만 파일 읽기 시도
                 try {
-                    console.log('엑셀 파일 읽기 시도...');
+                    console.log('아티팩트 환경: 엑셀 파일 읽기 시도...');
                     const fileData = await window.fs.readFile('rest_list.xlsx');
                     console.log('파일 읽기 성공, 크기:', fileData.length);
                     
@@ -639,30 +874,30 @@
                                item.식당이름.trim() !== '';
                     });
                     
-                    console.log(`외부 파일에서 식당 데이터 로드 완료: ${restaurantData.length}개`);
+                    console.log(`✅ 실제 식당 데이터 로드 완료: ${restaurantData.length}개`);
                     hideLoadingSpinner();
                     displayRestaurantData();
-                    showFloatingMessage(`✅ ${restaurantData.length.toLocaleString()}개의 실제 식당 데이터를 불러왔습니다!`, 'success', 4000);
+                    showFloatingMessage(`🎉 ${restaurantData.length.toLocaleString()}개의 실제 식당 데이터를 불러왔습니다!`, 'success', 4000);
                     return;
                     
                 } catch (fileError) {
-                    console.log('외부 파일 로드 실패:', fileError.message);
-                    console.log('샘플 데이터 사용');
+                    console.log('파일 읽기 실패:', fileError.message);
+                    console.log('샘플 데이터로 대체');
                 }
                 
-                // 파일이 없는 경우 확장된 샘플 데이터 사용
+                // 파일 읽기 실패 시 샘플 데이터 사용
                 restaurantData = getExpandedSampleData();
                 hideLoadingSpinner();
                 displayRestaurantData();
-                showFloatingMessage(`📍 ${restaurantData.length}개의 샘플 데이터를 표시합니다. 실제 데이터(13,668개)를 사용하려면 rest_list.xlsx 파일을 같은 폴더에 위치시켜주세요.`, 'error', 6000);
+                showFloatingMessage(`📍 ${restaurantData.length}개의 샘플 데이터를 표시합니다.`, 'success', 4000);
                 
             } catch (error) {
-                console.error('식당 데이터 로드 실패:', error);
+                console.error('❌ 식당 데이터 로드 실패:', error);
                 hideLoadingSpinner();
                 // 에러 시에도 샘플 데이터 사용
                 restaurantData = getExpandedSampleData();
                 displayRestaurantData();
-                showFloatingMessage(`⚠️ 데이터 로드 중 오류가 발생하여 샘플 데이터를 표시합니다.`, 'error', 5000);
+                showFloatingMessage(`⚠️ 샘플 데이터 ${restaurantData.length}개를 표시합니다.`, 'error', 4000);
             }
         }
         
@@ -730,32 +965,39 @@
             ];
         }
         
-        // 식당 데이터 지도에 표시 (성능 최적화)
+        // 식당 데이터 지도에 표시 (마커 크기 통일)
         function displayRestaurantData() {
             clearMap();
             
-            if (!restaurantData || restaurantData.length === 0) return;
+            if (!restaurantData || restaurantData.length === 0) {
+                console.log('❌ 표시할 식당 데이터가 없습니다');
+                return;
+            }
+            
+            console.log(`🗺️ ${restaurantData.length}개 식당 데이터 지도 표시 시작`);
             
             let bounds = [];
             let addedCount = 0;
             
-            // 줌 레벨에 따른 표시 개수 조정 (현재 줌 레벨이 없으면 기본값 사용)
+            // 줌 레벨에 따른 표시 개수 조정
             const zoomLevel = map ? map.getZoom() : 7;
             let maxDisplay = 3000; // 기본값을 늘림
             
             if (zoomLevel < 7) {
-                maxDisplay = Math.min(1000, restaurantData.length); // 전국 뷰
+                maxDisplay = Math.min(1000, restaurantData.length);
             } else if (zoomLevel < 9) {
-                maxDisplay = Math.min(2000, restaurantData.length); // 지역 뷰
+                maxDisplay = Math.min(2000, restaurantData.length);
             } else if (zoomLevel < 11) {
-                maxDisplay = Math.min(3000, restaurantData.length); // 상세 뷰
+                maxDisplay = Math.min(3000, restaurantData.length);
             } else {
-                maxDisplay = Math.min(5000, restaurantData.length); // 매우 상세 뷰
+                maxDisplay = Math.min(5000, restaurantData.length);
             }
             
             // 방문횟수순으로 정렬하여 인기 맛집을 우선 표시
             const sortedData = [...restaurantData].sort((a, b) => (parseInt(b.방문횟수) || 0) - (parseInt(a.방문횟수) || 0));
             const displayData = sortedData.slice(0, maxDisplay);
+            
+            console.log(`📊 표시 예정 데이터: ${displayData.length}개 (줌레벨: ${zoomLevel})`);
             
             displayData.forEach((restaurant, index) => {
                 try {
@@ -767,11 +1009,8 @@
                     
                     const markerConfig = getRestaurantMarkerConfig(visitCount);
                     
-                    // 방문횟수가 많을수록 큰 마커 (75% 크기로 조정)
-                    let markerSize = 15; // 기본 크기 줄임
-                    if (visitCount >= 50) markerSize = 21; // 28 * 0.75
-                    else if (visitCount >= 20) markerSize = 18; // 24 * 0.75
-                    else if (visitCount >= 10) markerSize = 16; // 22 * 0.75
+                    // 모든 마커 크기 통일 (18px)
+                    const markerSize = 18;
                     
                     const marker = L.marker([lat, lng], {
                         icon: L.divIcon({
@@ -788,20 +1027,17 @@
                                     justify-content: center; 
                                     border: 2px solid white; 
                                     box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
-                                    font-size: ${markerSize * 0.45}px;
+                                    font-size: 8px;
                                     cursor: pointer;
                                 ">
                                     <i class="fas ${markerConfig.icon}"></i>
-                                    ${visitCount >= 50 ? `<div style="position: absolute; top: -3px; right: -3px; background: #ff4757; color: white; border-radius: 50%; width: 11px; height: 11px; font-size: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid white;">★</div>` : ''}
+                                    ${visitCount >= 50 ? `<div style="position: absolute; top: -3px; right: -3px; background: #ff4757; color: white; border-radius: 50%; width: 10px; height: 10px; font-size: 6px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 1px solid white;">★</div>` : ''}
                                 </div>
                             `,
                             iconSize: [markerSize, markerSize],
                             iconAnchor: [markerSize/2, markerSize/2]
                         })
                     });
-                    
-                    // 마커 호버 효과 제거 (안정성을 위해)
-                    // 클릭으로만 팝업 열리도록 설정
                     
                     const popupContent = createRestaurantPopup(restaurant);
                     marker.bindPopup(popupContent, {
@@ -817,12 +1053,15 @@
                 }
             });
             
+            console.log(`✅ 마커 생성 완료: ${addedCount}개`);
+            
             // 지도 뷰 조정 (첫 로드시만)
             if (bounds.length > 0 && !map._initialBoundsSet) {
                 try {
                     const group = new L.featureGroup(markersLayer.getLayers());
                     map.fitBounds(group.getBounds().pad(0.05));
                     map._initialBoundsSet = true;
+                    console.log('🗺️ 지도 뷰 조정 완료');
                 } catch (error) {
                     console.warn('지도 뷰 조정 실패:', error);
                 }
@@ -1004,7 +1243,7 @@
             });
         }
         
-        // 지도에 데이터 표시
+        // 지도에 데이터 표시 (일반 카테고리용, 마커 크기 통일)
         function displayDataOnMap(data, category) {
             clearMap();
             
@@ -1026,20 +1265,21 @@
                                     background-color: ${config.color}; 
                                     color: white; 
                                     border-radius: 50%; 
-                                    width: 30px; 
-                                    height: 30px; 
+                                    width: 18px; 
+                                    height: 18px; 
                                     display: flex; 
                                     align-items: center; 
                                     justify-content: center; 
                                     border: 2px solid white; 
                                     box-shadow: 0 2px 6px rgba(0,0,0,0.3); 
-                                    font-size: 12px;
+                                    font-size: 8px;
+                                    cursor: pointer;
                                 ">
                                     <i class="fas ${config.icon}"></i>
                                 </div>
                             `,
-                            iconSize: [30, 30],
-                            iconAnchor: [15, 15]
+                            iconSize: [18, 18],
+                            iconAnchor: [9, 9]
                         })
                     });
                     
@@ -1272,31 +1512,44 @@
             });
         }
         
-        // 페이지 로드 시 초기화
+        // 페이지 로드 시 초기화 (디버깅 강화)
         document.addEventListener('DOMContentLoaded', function() {
             console.log('📱 좋아할지도 초기화 시작...');
             
             // Leaflet 라이브러리 확인
             if (typeof L === 'undefined') {
+                console.error('❌ Leaflet 라이브러리가 로드되지 않았습니다');
                 showFloatingMessage('지도 라이브러리 로딩 실패. 페이지를 새로고침해 주세요.', 'error');
                 return;
             }
             
+            // XLSX 라이브러리 확인
+            if (typeof XLSX === 'undefined') {
+                console.error('❌ XLSX 라이브러리가 로드되지 않았습니다');
+            } else {
+                console.log('✅ XLSX 라이브러리 로드 확인');
+            }
+            
             // 지도 초기화
             if (!initializeMap()) {
+                console.error('❌ 지도 초기화 실패');
                 return;
             }
+            
+            console.log('✅ 지도 초기화 완료');
             
             // 이벤트 리스너 설정
             handleResize();
             
             // 맛집 카테고리 자동 선택 및 데이터 로드
+            console.log('🍽️ 맛집 카테고리 자동 선택 중...');
             setTimeout(() => {
+                console.log('🔄 맛집 카테고리 선택 실행');
                 selectCategory('맛집');
-            }, 500);
+            }, 1000); // 1초 후에 실행하여 충분한 초기화 시간 확보
             
             console.log('✅ 좋아할지도 초기화 완료!');
-            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 맛집 데이터를 로드하고 있습니다...', 'success', 3000);
+            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 잠시 후 맛집 데이터가 로드됩니다...', 'success', 3000);
         });
     </script>
 </body>

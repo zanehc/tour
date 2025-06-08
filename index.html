@@ -1731,67 +1731,45 @@
             }
         }
 
-        // 휴게소 데이터 로드 (CSV 및 XLSX 지원) - 샘플 데이터 포함
+        // 휴게소 데이터 로드 (실제 첨부 파일 기반)
         async function loadRestAreaData() {
             try {
                 showLoadingSpinner('휴게소 데이터를 불러오는 중...');
-                console.log('휴게소 데이터 파일 로딩 시작...');
+                console.log('🚗 실제 휴게소 데이터 파일 로딩 시작...');
                 
                 let parsedData = null;
                 let dataSource = null;
                 
-                // 실제 파일 읽기 시도
-                const possibleFiles = [
-                    { name: 'data_ex.csv', type: 'csv' },
-                    { name: 'data_ex.xlsx', type: 'xlsx' },
-                    { name: 'Data_ex.csv', type: 'csv' },
-                    { name: 'DATA_EX.csv', type: 'csv' },
-                    { name: 'Data_ex.xlsx', type: 'xlsx' },
-                    { name: 'DATA_EX.xlsx', type: 'xlsx' },
-                    { name: '휴게소데이터.csv', type: 'csv' },
-                    { name: '휴게소데이터.xlsx', type: 'xlsx' }
-                ];
-                
-                // 각 파일을 순서대로 시도
-                for (const fileInfo of possibleFiles) {
+                // 첨부된 실제 파일 우선 시도
+                try {
+                    console.log('📁 data_ex.xlsx 파일 읽기 시도...');
+                    const xlsxBuffer = await window.fs.readFile('data_ex.xlsx');
+                    parsedData = parseXLSXData(xlsxBuffer);
+                    dataSource = 'data_ex.xlsx (실제 데이터)';
+                    console.log(`✅ 실제 data_ex.xlsx 파일 로드 성공!`);
+                } catch (xlsxError) {
+                    console.log('❌ data_ex.xlsx 읽기 실패, CSV 시도...');
                     try {
-                        console.log(`${fileInfo.name} (${fileInfo.type}) 파일 시도 중...`);
-                        
-                        if (fileInfo.type === 'csv') {
-                            const csvText = await window.fs.readFile(fileInfo.name, { encoding: 'utf8' });
-                            parsedData = parseCSVData(csvText);
-                            dataSource = fileInfo.name;
-                            console.log(`✅ ${fileInfo.name} 파일 로드 성공 (CSV)`);
-                            break;
-                        } else if (fileInfo.type === 'xlsx') {
-                            const xlsxBuffer = await window.fs.readFile(fileInfo.name);
-                            parsedData = parseXLSXData(xlsxBuffer);
-                            dataSource = fileInfo.name;
-                            console.log(`✅ ${fileInfo.name} 파일 로드 성공 (XLSX)`);
-                            break;
-                        }
-                    } catch (error) {
-                        console.log(`❌ ${fileInfo.name} 파일 로드 실패:`, error.message);
-                        continue;
+                        const csvText = await window.fs.readFile('data_ex.csv', { encoding: 'utf8' });
+                        parsedData = parseCSVData(csvText);
+                        dataSource = 'data_ex.csv (실제 데이터)';
+                        console.log(`✅ 실제 data_ex.csv 파일 로드 성공!`);
+                    } catch (csvError) {
+                        console.log('❌ 실제 데이터 파일 없음, 샘플 데이터 사용');
+                        throw new Error('실제 데이터 파일을 찾을 수 없습니다.');
                     }
                 }
                 
-                // 파일 로드 실패 시 샘플 데이터 사용
-                if (!parsedData || parsedData.length === 0) {
-                    console.log('🔄 실제 파일을 찾을 수 없어 샘플 데이터를 사용합니다.');
-                    parsedData = getSampleRestAreaData();
-                    dataSource = '샘플 데이터';
-                }
+                console.log(`📊 파싱된 데이터 수: ${parsedData.length}개 (소스: ${dataSource})`);
                 
-                console.log(`파싱된 데이터 수: ${parsedData.length}개 (소스: ${dataSource})`);
-                
-                // 데이터 검증 및 변환
+                // 데이터 검증 및 변환 (실제 데이터 구조에 맞게)
                 restAreaData = [];
                 let validCount = 0;
+                let invalidCount = 0;
                 
                 parsedData.forEach((row, index) => {
                     try {
-                        // 위도, 경도 검증
+                        // 위도, 경도 검증 (실제 파일의 컬럼명 사용)
                         const lat = parseFloat(row['위도'] || row['lat'] || row['latitude']);
                         const lng = parseFloat(row['경도'] || row['lng'] || row['longitude']);
                         
@@ -1799,28 +1777,30 @@
                             lat >= 33 && lat <= 39 && // 대한민국 위도 범위
                             lng >= 124 && lng <= 132) { // 대한민국 경도 범위
                             
-                            // 통일된 컬럼명으로 변환
+                            // 실제 파일 구조에 맞게 변환
                             const standardizedRow = {
-                                '휴게소명': row['휴게소명'] || row['name'] || row['restarea_name'] || '',
-                                '고속도로': row['고속도로'] || row['highway'] || row['road'] || '',
+                                '휴게소명': row['휴게소명'] || '',
+                                '고속도로': row['고속도로'] || '',
                                 '위도': lat,
                                 '경도': lng,
-                                '휴게소종류': row['휴게소종류'] || row['type'] || '',
-                                '운영시간': row['운영시간'] || row['hours'] || '',
-                                '방향': row['방향'] || row['direction'] || '',
-                                '주요편의시설': row['주요편의시설'] || row['facilities'] || '',
-                                '전화번호': row['전화번호'] || row['phone'] || '',
-                                '데이터기준일': row['데이터기준일'] || row['date'] || '',
-                                '프랜차이즈매장': row['프랜차이즈매장'] || row['franchise'] || ''
+                                '휴게소종류': row['휴게소종류'] || '',
+                                '운영시간': row['운영시간'] || '',
+                                '방향': row['방향'] || '',
+                                '주요편의시설': row['주요편의시설'] || '',
+                                '전화번호': row['전화번호'] || '',
+                                '데이터기준일': row['데이터기준일'] || '',
+                                '프랜차이즈매장': row['프랜차이즈매장'] || ''
                             };
                             
                             restAreaData.push(standardizedRow);
                             validCount++;
                         } else {
-                            console.warn(`유효하지 않은 좌표 (행 ${index + 2}):`, row['휴게소명'] || `행${index+2}`, lat, lng);
+                            console.warn(`⚠️ 유효하지 않은 좌표 (행 ${index + 2}):`, row['휴게소명'] || `행${index+2}`, lat, lng);
+                            invalidCount++;
                         }
                     } catch (e) {
-                        console.warn(`데이터 처리 실패 (행 ${index + 2}):`, e.message);
+                        console.warn(`⚠️ 데이터 처리 실패 (행 ${index + 2}):`, e.message);
+                        invalidCount++;
                     }
                 });
                 
@@ -1830,14 +1810,19 @@
                     throw new Error('유효한 휴게소 데이터가 없습니다. 데이터 형식을 확인해주세요.');
                 }
                 
-                console.log(`✅ 휴게소 데이터 로드 완료: 전체 ${parsedData.length}개 중 ${validCount}개 유효 (소스: ${dataSource})`);
+                console.log(`✅ 휴게소 데이터 로드 완료!`);
+                console.log(`📊 전체: ${parsedData.length}개 → 유효: ${validCount}개, 무효: ${invalidCount}개`);
+                console.log(`📁 데이터 소스: ${dataSource}`);
+                
+                // 성공 메시지 표시
+                showFloatingMessage(`🎉 실제 휴게소 데이터 ${validCount}개를 성공적으로 로드했습니다!`, 'success', 4000);
                 
             } catch (error) {
                 console.error('❌ 휴게소 데이터 로드 실패:', error);
                 hideLoadingSpinner();
                 
-                // 최종 백업으로 샘플 데이터 사용
-                console.log('🔄 최종 백업으로 샘플 데이터를 사용합니다.');
+                // 백업으로 샘플 데이터 사용
+                console.log('🔄 백업 샘플 데이터를 사용합니다...');
                 const sampleData = getSampleRestAreaData();
                 restAreaData = sampleData.map(row => ({
                     '휴게소명': row['휴게소명'],
@@ -1853,7 +1838,8 @@
                     '프랜차이즈매장': row['프랜차이즈매장']
                 }));
                 
-                console.log(`✅ 샘플 휴게소 데이터 로드 완료: ${restAreaData.length}개`);
+                console.log(`✅ 백업 샘플 데이터 로드 완료: ${restAreaData.length}개`);
+                showFloatingMessage(`⚠️ 실제 파일을 찾을 수 없어 샘플 데이터(${restAreaData.length}개)를 사용합니다.`, 'error', 5000);
             }
         }
 
@@ -2609,7 +2595,7 @@
             }).addTo(geojsonLayer);
         }
 
-        // 휴게소 표시 (마진 리셋 포함)
+        // 휴게소 표시 (실제 데이터 기반 개선)
         function showRestAreas() {
             console.log('🚗 휴게소 표시 요청...');
             
@@ -2619,7 +2605,7 @@
                     `휴게소 데이터가 비어있습니다. (${restAreaData ? restAreaData.length : 0}개)`;
                 
                 console.error('❌ 휴게소 데이터 오류:', errorMsg);
-                showFloatingMessage(`${errorMsg} data_ex.csv 파일이 올바른 위치에 있는지 확인하고 페이지를 새로고침해주세요.`, 'error', 7000);
+                showFloatingMessage(`${errorMsg} data_ex.xlsx 파일이 올바른 위치에 있는지 확인하고 페이지를 새로고침해주세요.`, 'error', 7000);
                 return;
             }
 
@@ -2642,13 +2628,14 @@
             
             // 전국 뷰로 변경
             map.setView([36.5, 127.5], 7);
-            updateCurrentCategoryDisplay('고속도로 휴게소');
+            updateCurrentCategoryDisplay(`고속도로 휴게소 (${restAreaData.length}개)`);
 
-            showLoadingSpinner('휴게소 마커를 생성하는 중...');
+            showLoadingSpinner(`${restAreaData.length}개 휴게소 마커를 생성하는 중...`);
 
-            // 휴게소 마커 표시
+            // 휴게소 마커 표시 (실제 데이터 활용)
             let successCount = 0;
             let errorCount = 0;
+            const processedHighways = new Set();
             
             restAreaData.forEach((restArea, index) => {
                 try {
@@ -2656,48 +2643,88 @@
                     const lng = restArea['경도'];
                     
                     if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                        console.warn(`⚠️ 좌표 오류 (${index}):`, restArea['휴게소명']);
                         errorCount++;
                         return;
+                    }
+                    
+                    // 휴게소 종류에 따른 마커 아이콘
+                    let markerIcon = 'fas fa-coffee';
+                    let markerColor = '#28a745';
+                    
+                    const restAreaType = restArea['휴게소종류'] || '';
+                    if (restAreaType.includes('간이')) {
+                        markerIcon = 'fas fa-store';
+                        markerColor = '#ffc107';
                     }
                     
                     const marker = L.marker([lat, lng], {
                         icon: L.divIcon({
                             className: 'rest-area-marker',
-                            html: '<i class="fas fa-coffee"></i>',
+                            html: `<i class="${markerIcon}" style="color: white;"></i>`,
                             iconSize: [24, 24],
                             iconAnchor: [12, 12]
                         })
+                    });
+
+                    // 마커 색상 적용
+                    marker.on('add', function() {
+                        const markerElement = marker.getElement();
+                        if (markerElement) {
+                            markerElement.style.backgroundColor = markerColor;
+                        }
                     });
 
                     // 팝업 내용 생성
                     const popupContent = createRestAreaPopup(restArea);
                     marker.bindPopup(popupContent, {
                         className: 'custom-popup',
-                        maxWidth: 300,
-                        minWidth: 250
+                        maxWidth: 320,
+                        minWidth: 280
                     });
 
                     marker.addTo(restAreaLayer);
                     successCount++;
+                    
+                    // 고속도로 추적
+                    if (restArea['고속도로']) {
+                        processedHighways.add(restArea['고속도로']);
+                    }
+                    
                 } catch (error) {
-                    console.warn(`휴게소 마커 생성 실패 (${index}):`, restArea['휴게소명'], error);
+                    console.warn(`⚠️ 마커 생성 실패 (${index}):`, restArea['휴게소명'], error);
                     errorCount++;
                 }
             });
 
             hideLoadingSpinner();
             
+            // 결과 요약
+            const highwayList = Array.from(processedHighways).sort();
+            console.log(`✅ 휴게소 표시 완료:`, {
+                총데이터: restAreaData.length,
+                성공: successCount,
+                실패: errorCount,
+                고속도로: highwayList.length + '개 노선'
+            });
+            
             if (successCount > 0) {
-                console.log(`✅ ${successCount}개 휴게소 표시 완료${errorCount > 0 ? ` (${errorCount}개 오류)` : ''}`);
-                showFloatingMessage(`${successCount}개의 휴게소가 표시되었습니다.${errorCount > 0 ? ` (${errorCount}개 오류)` : ''}`, 'success', 4000);
+                const message = errorCount > 0 
+                    ? `${successCount}개 휴게소 표시 완료 (${errorCount}개 오류)`
+                    : `🎉 전국 ${successCount}개 휴게소를 지도에 표시했습니다!\n📍 ${highwayList.length}개 고속도로 노선 포함`;
+                
+                showFloatingMessage(message, 'success', 5000);
+                
+                // 콘솔에 고속도로 목록 표시
+                console.log('📍 포함된 고속도로:', highwayList.join(', '));
             } else {
-                showFloatingMessage('표시할 수 있는 휴게소가 없습니다. 데이터를 확인해주세요.', 'error', 5000);
+                showFloatingMessage('❌ 표시할 수 있는 휴게소가 없습니다. 데이터를 확인해주세요.', 'error', 5000);
             }
         }
 
-        // 휴게소 팝업 내용 생성
+        // 휴게소 팝업 내용 생성 (실제 데이터 기반 개선)
         function createRestAreaPopup(restArea) {
-            // 프랜차이즈 매장 처리 (따옴표 제거 후 분리)
+            // 프랜차이즈 매장 처리 (실제 데이터 구조 반영)
             let franchiseHtml = '';
             if (restArea['프랜차이즈매장'] && restArea['프랜차이즈매장'].trim() !== '') {
                 let franchiseText = restArea['프랜차이즈매장']
@@ -2729,19 +2756,45 @@
                 facilitiesText = facilitiesText.replace(/^["']|["']$/g, '').replace(/["']/g, '');
             }
 
+            // 운영시간 포맷팅
+            let operatingHours = restArea['운영시간'] || '정보없음';
+            if (operatingHours === '00:00-23:59') {
+                operatingHours = '24시간 운영';
+            }
+
+            // 휴게소 종류에 따른 아이콘
+            let typeIcon = 'fas fa-coffee';
+            const restAreaType = restArea['휴게소종류'] || '';
+            if (restAreaType.includes('일반')) {
+                typeIcon = 'fas fa-coffee';
+            } else if (restAreaType.includes('간이')) {
+                typeIcon = 'fas fa-store';
+            }
+
+            // 방향에 따른 색상
+            let directionColor = '#28a745';
+            const direction = restArea['방향'] || '';
+            if (direction.includes('서울') || direction.includes('인천')) {
+                directionColor = '#007bff';
+            } else if (direction.includes('부산') || direction.includes('대구')) {
+                directionColor = '#dc3545';
+            }
+
             return `
                 <div>
                     <div class="popup-header">
-                        <i class="fas fa-coffee"></i> ${restArea['휴게소명'] || '정보없음'}
+                        <i class="${typeIcon}"></i> ${restArea['휴게소명'] || '정보없음'}
                     </div>
                     <div class="popup-content">
                         <div class="popup-row">
                             <div class="popup-label">고속도로:</div>
-                            <div class="popup-value">${restArea['고속도로'] || '정보없음'}</div>
+                            <div class="popup-value"><strong>${restArea['고속도로'] || '정보없음'}</strong></div>
                         </div>
                         <div class="popup-row">
                             <div class="popup-label">방향:</div>
-                            <div class="popup-value">${restArea['방향'] || '정보없음'}</div>
+                            <div class="popup-value" style="color: ${directionColor}; font-weight: 600;">
+                                <i class="fas fa-arrow-right"></i> ${restArea['방향'] || '정보없음'}
+                            </div>
                         </div>
                         <div class="popup-row">
                             <div class="popup-label">종류:</div>
@@ -2749,19 +2802,24 @@
                         </div>
                         <div class="popup-row">
                             <div class="popup-label">운영시간:</div>
-                            <div class="popup-value">${restArea['운영시간'] || '정보없음'}</div>
+                            <div class="popup-value"><i class="fas fa-clock"></i> ${operatingHours}</div>
                         </div>
                         ${franchiseHtml}
-                        ${facilitiesText ? `
+                        ${facilitiesText && facilitiesText !== '정보없음' ? `
                         <div class="popup-row">
                             <div class="popup-label">편의시설:</div>
-                            <div class="popup-value">${facilitiesText}</div>
+                            <div class="popup-value"><i class="fas fa-concierge-bell"></i> ${facilitiesText}</div>
                         </div>
                         ` : ''}
-                        ${restArea['전화번호'] && restArea['전화번호'] !== '문의 필요' ? `
+                        ${restArea['전화번호'] && restArea['전화번호'] !== '문의 필요' && restArea['전화번호'] !== '정보없음' ? `
                         <div class="popup-row">
                             <div class="popup-label">전화:</div>
-                            <div class="popup-value">${restArea['전화번호']}</div>
+                            <div class="popup-value"><i class="fas fa-phone"></i> ${restArea['전화번호']}</div>
+                        </div>
+                        ` : ''}
+                        ${restArea['데이터기준일'] ? `
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; font-size: 10px; color: #999; text-align: center;">
+                            데이터 기준일: ${restArea['데이터기준일']}
                         </div>
                         ` : ''}
                     </div>

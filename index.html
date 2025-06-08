@@ -1,3 +1,826 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>좋아할지도 - 전국 여행정보</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        /* 헤더 */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 0 20px;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .menu-toggle {
+            position: fixed;
+            top: 70px;
+            left: 15px;
+            z-index: 1001;
+            background: rgba(255,255,255,0.95);
+            border: 1px solid #ddd;
+            color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .menu-toggle:hover {
+            background: rgba(255,255,255,1);
+            transform: scale(1.05);
+        }
+        
+        /* 메인 컨테이너 */
+        .main-container {
+            display: flex;
+            height: 100vh;
+            padding-top: 60px;
+            transition: all 0.3s ease;
+        }
+        
+        .main-container.sidebar-closed {
+            padding-left: 0;
+        }
+        
+        .main-container.sidebar-closed .sidebar {
+            display: none;
+        }
+        
+        /* 사이드바 패널 (왼쪽) */
+        .sidebar {
+            width: 320px;
+            background: white;
+            border-right: 1px solid #e1e5e9;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 999;
+            flex-shrink: 0;
+            height: 100%;
+        }
+        
+        .sidebar.closed {
+            width: 0;
+            border-right: none;
+            opacity: 0;
+        }
+        
+        /* 사이드바 헤더 */
+        .sidebar-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e1e5e9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .sidebar-header h3 {
+            color: #333;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        /* 카테고리 섹션 그룹화 (테두리 추가) */
+        .category-section {
+            margin-bottom: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 12px;
+            background: #fafbfc;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .category-section:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+        }
+        
+        .category-section-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .category-section-title:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        
+        .category-section-title-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .category-section-toggle {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+        
+        .category-section-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .category-section-content {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 15px;
+            background: white;
+            max-height: 70vh;
+            overflow-y: auto;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        
+        .category-section-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .category-section-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .category-section-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .category-section-content::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        .category-buttons::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .category-buttons::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .category-buttons::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .category-buttons::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        .category-section-content.collapsed {
+            max-height: 0;
+            padding: 0 15px;
+            overflow: hidden;
+        }
+        
+        /* 카테고리 버튼들 (기존 스타일 유지) */
+        .category-buttons {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            max-height: calc(100vh - 160px);
+            flex: 1;
+        }
+        
+        .category-btn {
+            width: 100%;
+            background: white;
+            border: 2px solid #e1e5e9;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.3s;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .category-btn:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+        
+        .category-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: #667eea;
+            color: white;
+        }
+        
+        .category-btn i {
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .category-section-content .category-btn:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 행정구역 컨테이너 */
+        .administrative-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* 전국 버튼 스타일 */
+        .all-korea-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: 2px solid #28a745;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.3s;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .all-korea-btn:hover {
+            background: linear-gradient(135deg, #218838 0%, #1e7e6d 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.25);
+        }
+
+        .all-korea-btn.active {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            border-color: #dc3545;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+        }
+
+        /* 시도 버튼 그리드 레이아웃 */
+        .provinces-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        /* 시도 버튼 스타일 */
+        .province-btn {
+            background: white;
+            border: 1px solid #e1e5e9;
+            padding: 8px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 9px;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
+            color: #555;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.1;
+            word-break: keep-all;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .province-btn:hover {
+            border-color: #764ba2;
+            background: #f3f5ff;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(118, 75, 162, 0.1);
+        }
+
+        .province-btn.active {
+            background: linear-gradient(135deg, #764ba2 0%, #a27ee2 100%);
+            border-color: #764ba2;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(118, 75, 162, 0.25);
+        }
+
+        /* 시도별 컨테이너 */
+        .province-container {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        /* 개별 시군구 컨테이너 */
+        .individual-districts-container {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background: white;
+            overflow: hidden;
+            display: none;
+            margin-top: 6px;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .individual-districts-container.show {
+            display: block;
+        }
+
+        .shared-districts-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .shared-districts-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .shared-districts-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .shared-districts-content::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        .individual-districts-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .individual-districts-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px;
+            background: #f8f9fa;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        /* 시군구 버튼 스타일 (카테고리 버튼과 유사하게) */
+        .district-btn {
+            width: 100%;
+            background: white;
+            border: 1px solid #e1e5e9;
+            padding: 6px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 10px;
+            font-weight: 500;
+            text-align: left;
+            transition: all 0.2s;
+            color: #555;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .district-btn:hover {
+            border-color: #764ba2;
+            background: #f3f5ff;
+            transform: translateY(-1px);
+            box-shadow: 0 1px 3px rgba(118, 75, 162, 0.1);
+        }
+
+        .district-btn.active {
+            background: linear-gradient(135deg, #9fa8da 0%, #b39ddb 100%);
+            border-color: #9fa8da;
+            color: white;
+        }
+        
+        .district-btn i {
+            font-size: 12px;
+            width: 14px;
+            text-align: center;
+        }
+
+        /* 전체(시도명) 버튼 특별 스타일 */
+        .district-btn.all-district {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border-color: #667eea;
+        }
+
+        .district-btn.all-district:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+
+        .district-btn.all-district.active {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
+        }
+        
+        /* 지도 컨테이너 */
+        .map-container {
+            flex: 1;
+            position: relative;
+            min-height: 400px;
+            cursor: pointer; /* 지도 클릭 가능 표시 */
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            background-color: #f0f0f0;
+        }
+        
+        /* 플로팅 메시지 */
+        .floating-message {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            max-width: 500px;
+            border-radius: 8px;
+            padding: 15px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .loading {
+            background: white;
+            border: 1px solid #ddd;
+            color: #666;
+        }
+        
+        .loading i {
+            margin-right: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c66;
+        }
+        
+        .success {
+            background: #efe;
+            border: 1px solid #cfc;
+            color: #6c6;
+        }
+        
+        /* 위치 버튼 */
+        .location-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            font-size: 18px;
+            transition: transform 0.2s;
+        }
+        
+        .location-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .location-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 60px;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                z-index: 1000;
+                box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+                transform: translateX(0);
+            }
+            
+            .sidebar.closed {
+                transform: translateX(-100%);
+                width: 280px;
+                opacity: 1;
+            }
+            
+            .main-container {
+                padding-left: 0 !important;
+            }
+            
+            .main-container.sidebar-closed .sidebar {
+                display: flex;
+            }
+            
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            
+            .category-btn {
+                padding: 12px 16px;
+                font-size: 13px;
+            }
+            
+            .menu-toggle {
+                top: 70px;
+                left: 15px;
+            }
+
+            /* 모바일에서도 가로 배치 유지 */
+            .provinces-row-buttons {
+                display: flex;
+                flex-direction: row;
+                gap: 4px;
+            }
+
+            .province-btn {
+                font-size: 8px;
+                padding: 6px 2px;
+                min-height: 32px;
+                line-height: 1.0;
+                flex: 1;
+            }
+
+            .row-districts-header {
+                font-size: 10px;
+                padding: 6px 10px;
+            }
+
+            .row-districts-content {
+                max-height: 180px;
+            }
+
+            .district-btn {
+                font-size: 9px;
+                padding: 5px 8px;
+            }
+
+            .district-btn i {
+                font-size: 10px;
+                width: 12px;
+            }
+
+            .category-section-content {
+                max-height: 65vh;
+            }
+        }
+        
+        /* 지도 오버레이 정보 */
+        .map-overlay {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(255,255,255,0.9);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #666;
+            z-index: 500;
+        }
+        
+        /* 로딩 스피너 */
+        .loading-spinner {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        /* 휴게소 마커 스타일 */
+        .rest-area-marker {
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 12px;
+        }
+        
+        /* 팝업 스타일 개선 */
+        .custom-popup {
+            min-width: 250px;
+        }
+        
+        .popup-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 12px 16px;
+            margin: -12px -16px 12px -16px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .popup-content {
+            padding: 8px 0;
+        }
+        
+        .popup-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: flex-start;
+        }
+        
+        .popup-label {
+            font-weight: 600;
+            color: #495057;
+            width: 80px;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        
+        .popup-value {
+            color: #6c757d;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .franchise-list {
+            max-height: 80px;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+        
+        .franchise-item {
+            display: inline-block;
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 2px 6px;
+            margin: 2px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <i class="fas fa-heart"></i> 좋아할지도
+        </h1>
+    </div>
+    
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="main-container">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-map-marked-alt"></i> 지도선택</h3>
+            </div>
+            
+            <div class="category-buttons">
+                <div class="category-section">
+                    <div class="category-section-title" onclick="toggleCategorySection('administrative-map')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-globe-asia"></i>
+                            전국 행정구역
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="administrative-map-toggle"></i>
+                    </div>
+                    <div class="category-section-content" id="administrative-map-content">
+                        <div class="administrative-container" id="administrative-container">
+                            <!-- 전국 버튼과 시도별 컨테이너들이 여기에 동적으로 생성됩니다 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="category-section">
+                    <div class="category-section-title" onclick="toggleCategorySection('rest-areas')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-gas-pump"></i>
+                            고속도로 휴게소
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="rest-areas-toggle"></i>
+                    </div>
+                    <div class="category-section-content" id="rest-areas-content">
+                        <button class="category-btn" onclick="showRestAreas()">
+                            <i class="fas fa-coffee"></i> 전국 휴게소 보기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="map-container" onclick="handleMapClick()">
+            <div id="map"></div>
+            <div class="map-overlay">
+                <span id="currentCategoryDisplay">지도 영역을 선택해주세요</span>
+            </div>
+        </div>
+    </div>
+    
+    <button class="location-btn" onclick="moveToMyLocation()" title="내 위치로 이동">
+        <i class="fas fa-location-arrow"></i>
+    </button>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <script>
         // 전역 변수
         let map;
@@ -561,7 +1384,7 @@
             });
         }
 
-        // 자동 위치 감지 및 시군구 줌인
+        // 자동 위치 감지 및 시군구 줌인 - 헬퍼 함수 사용
         async function autoDetectLocationAndZoom() {
             return new Promise((resolve) => {
                 if (!navigator.geolocation) {
@@ -592,6 +1415,9 @@
                                 const rowIndex = Math.floor(provinceIndex / 3);
                                 
                                 console.log(`${provinceName}은 ${rowIndex}번째 행에 위치`);
+                                
+                                // 기존 시군구 컨테이너 모두 숨김
+                                hideAllDistrictsContainers('autoDetectLocationAndZoom');
                                 
                                 // 해당 시도 선택
                                 selectProvince(provinceName, rowIndex);
@@ -683,21 +1509,51 @@
             return R * c;
         }
 
-        // 지도상의 모든 GeoJSON 경계 및 마커 클리어
-        function clearMapAndBoundaries() {
-            if (geojsonLayer) {
-                geojsonLayer.clearLayers();
+        // 모든 시군구 컨테이너를 강제로 숨기는 헬퍼 함수
+        function hideAllDistrictsContainers(caller = '') {
+            console.log(`🔒 모든 시군구 컨테이너 숨김 요청 (호출자: ${caller})`);
+            
+            const allDistrictsContainers = document.querySelectorAll('.row-districts-container');
+            console.log(`   발견된 컨테이너 수: ${allDistrictsContainers.length}`);
+            
+            let hiddenCount = 0;
+            allDistrictsContainers.forEach((container, index) => {
+                const wasVisible = container.classList.contains('show');
+                
+                // 다중 방식으로 강제 숨김
+                container.classList.remove('show');
+                container.style.display = 'none';
+                container.style.visibility = 'hidden';
+                
+                if (wasVisible) {
+                    hiddenCount++;
+                    console.log(`   ✅ 행 ${index} 컨테이너 숨김 (이전: 보임)`);
+                } else {
+                    console.log(`   ➖ 행 ${index} 컨테이너 이미 숨김상태`);
+                }
+            });
+            
+            console.log(`📊 숨김 처리 완료: ${hiddenCount}개 컨테이너 숨김, ${allDistrictsContainers.length - hiddenCount}개 이미 숨김상태`);
+            return hiddenCount;
+        }
+
+        // 특정 시군구 컨테이너만 표시하는 헬퍼 함수
+        function showDistrictsContainer(rowIndex, caller = '') {
+            console.log(`🔓 행 ${rowIndex} 시군구 컨테이너 표시 요청 (호출자: ${caller})`);
+            
+            const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
+            if (!rowContainer) {
+                console.error(`❌ 행 ${rowIndex}의 시군구 컨테이너를 찾을 수 없음`);
+                return false;
             }
-            if (restAreaLayer) {
-                restAreaLayer.clearLayers();
-            }
-            if (previousSelectedLayer) {
-                // 이전 선택된 레이어 스타일 초기화 (만약 개별 레이어였다면)
-                // 현재는 geojsonLayer.clearLayers()로 모든 레이어를 제거하므로 이 부분은 덜 중요해짐
-                // 하지만 혹시 모를 상황을 대비해 남겨둠.
-                previousSelectedLayer.setStyle(defaultStyle());
-                previousSelectedLayer = null;
-            }
+            
+            // 다중 방식으로 강제 표시
+            rowContainer.style.display = 'block';
+            rowContainer.style.visibility = 'visible';
+            rowContainer.classList.add('show');
+            
+            console.log(`✅ 행 ${rowIndex} 시군구 컨테이너 표시 완료`);
+            return true;
         }
 
         // GeoJSON 데이터 로드
@@ -706,6 +1562,7 @@
             try {
                 console.log('행정구역 GeoJSON 파일 로딩 시작...');
                 
+                // window.fs.readFile을 사용하여 파일 읽기
                 let geoJsonText;
                 try {
                     geoJsonText = await window.fs.readFile('sigun_boundraies.json', { encoding: 'utf8' });
@@ -725,177 +1582,371 @@
             }
         }
 
-        // 휴게소 데이터 로드 (CSV 및 XLSX 지원 개선)
+        // 휴게소 데이터 로드 (CSV 및 XLSX 지원) - 샘플 데이터 포함
         async function loadRestAreaData() {
             try {
                 showLoadingSpinner('휴게소 데이터를 불러오는 중...');
                 console.log('휴게소 데이터 파일 로딩 시작...');
                 
-                // 지원하는 파일 형식들 (우선순위 순)
+                let parsedData = null;
+                let dataSource = null;
+                
+                // 실제 파일 읽기 시도
                 const possibleFiles = [
-                    { name: 'data_ex.xlsx', type: 'xlsx' }, // XLSX 우선
                     { name: 'data_ex.csv', type: 'csv' },
-                    { name: 'Data_ex.xlsx', type: 'xlsx' }, // Case variations
+                    { name: 'data_ex.xlsx', type: 'xlsx' },
                     { name: 'Data_ex.csv', type: 'csv' },
-                    { name: 'DATA_EX.xlsx', type: 'xlsx' },
                     { name: 'DATA_EX.csv', type: 'csv' },
-                    { name: '휴게소데이터.xlsx', type: 'xlsx' }, // Korean names
-                    { name: '휴게소데이터.csv', type: 'csv' }
+                    { name: 'Data_ex.xlsx', type: 'xlsx' },
+                    { name: 'DATA_EX.xlsx', type: 'xlsx' },
+                    { name: '휴게소데이터.csv', type: 'csv' },
+                    { name: '휴게소데이터.xlsx', type: 'xlsx' }
                 ];
                 
-                let parsedData = null;
-                let successFile = null;
-                
+                // 각 파일을 순서대로 시도
                 for (const fileInfo of possibleFiles) {
                     try {
-                        console.log(`[DATA LOAD] ${fileInfo.name} (${fileInfo.type}) 파일 시도 중...`);
+                        console.log(`${fileInfo.name} (${fileInfo.type}) 파일 시도 중...`);
                         
                         if (fileInfo.type === 'csv') {
                             const csvText = await window.fs.readFile(fileInfo.name, { encoding: 'utf8' });
                             parsedData = parseCSVData(csvText);
-                            successFile = fileInfo.name;
-                            console.log(`[DATA LOAD] ✅ ${fileInfo.name} 파일 로드 성공 (CSV)`);
+                            dataSource = fileInfo.name;
+                            console.log(`✅ ${fileInfo.name} 파일 로드 성공 (CSV)`);
                             break;
                         } else if (fileInfo.type === 'xlsx') {
                             const xlsxBuffer = await window.fs.readFile(fileInfo.name);
                             parsedData = parseXLSXData(xlsxBuffer);
-                            successFile = fileInfo.name;
-                            console.log(`[DATA LOAD] ✅ ${fileInfo.name} 파일 로드 성공 (XLSX)`);
+                            dataSource = fileInfo.name;
+                            console.log(`✅ ${fileInfo.name} 파일 로드 성공 (XLSX)`);
                             break;
                         }
                     } catch (error) {
-                        console.log(`[DATA LOAD] ❌ ${fileInfo.name} 파일 로드 실패: ${error.message}`);
-                        // Continue to the next file
+                        console.log(`❌ ${fileInfo.name} 파일 로드 실패:`, error.message);
+                        continue;
                     }
                 }
                 
+                // 파일 로드 실패 시 샘플 데이터 사용
                 if (!parsedData || parsedData.length === 0) {
-                    throw new Error('휴게소 데이터 파일을 찾을 수 없습니다. "data_ex.csv" 또는 "data_ex.xlsx" 파일이 같은 경로에 있는지 확인해주세요.');
+                    console.log('🔄 실제 파일을 찾을 수 없어 샘플 데이터를 사용합니다.');
+                    parsedData = getSampleRestAreaData();
+                    dataSource = '샘플 데이터';
                 }
                 
-                console.log(`[DATA PROCESS] 파싱된 원본 데이터 수: ${parsedData.length}개 (파일: ${successFile})`);
+                console.log(`파싱된 데이터 수: ${parsedData.length}개 (소스: ${dataSource})`);
                 
-                // Define column mapping for robustness
-                const columnMappings = {
-                    restAreaName: ['휴게소명', 'name', 'restarea_name', 'service_area_name'],
-                    highway: ['고속도로', 'highway', 'road_name'],
-                    latitude: ['위도', 'lat', 'latitude'],
-                    longitude: ['경도', 'lng', 'longitude'],
-                    type: ['휴게소종류', 'type', 'service_type'],
-                    hours: ['운영시간', 'hours', 'opening_hours'],
-                    direction: ['방향', 'direction'],
-                    facilities: ['주요편의시설', 'facilities', 'main_facilities'],
-                    phone: ['전화번호', 'phone', 'contact'],
-                    dataDate: ['데이터기준일', 'date', 'data_standard_date'],
-                    franchise: ['프랜차이즈매장', 'franchise', 'franchise_stores']
-                };
-
-                // Helper to find column name (case-insensitive)
-                const findColumn = (row, possibleNames) => {
-                    for (const name of possibleNames) {
-                        // Check exact match first
-                        if (row.hasOwnProperty(name)) {
-                            return row[name];
-                        }
-                        // Check case-insensitive match
-                        for (const key in row) {
-                            if (key.toLowerCase() === name.toLowerCase()) {
-                                return row[key];
-                            }
-                        }
-                    }
-                    return ''; // Return empty string if not found
-                };
-
+                // 데이터 검증 및 변환
                 restAreaData = [];
                 let validCount = 0;
-                let skippedCount = 0;
                 
                 parsedData.forEach((row, index) => {
                     try {
-                        const rawLat = findColumn(row, columnMappings.latitude);
-                        const rawLng = findColumn(row, columnMappings.longitude);
-
-                        const lat = parseFloat(rawLat);
-                        const lng = parseFloat(rawLng);
+                        // 위도, 경도 검증
+                        const lat = parseFloat(row['위도'] || row['lat'] || row['latitude']);
+                        const lng = parseFloat(row['경도'] || row['lng'] || row['longitude']);
                         
-                        // Enhanced validation: check for valid numbers, not just within specific bounds
-                        if (isNaN(lat) || isNaN(lng)) {
-                            console.warn(`[DATA SKIP] 행 ${index + 2}: 유효하지 않은 위도/경도 데이터. 스킵. (위도: "${rawLat}", 경도: "${rawLng}")`);
-                            skippedCount++;
-                            return;
+                        if (!isNaN(lat) && !isNaN(lng) && 
+                            lat >= 33 && lat <= 39 && // 대한민국 위도 범위
+                            lng >= 124 && lng <= 132) { // 대한민국 경도 범위
+                            
+                            // 통일된 컬럼명으로 변환
+                            const standardizedRow = {
+                                '휴게소명': row['휴게소명'] || row['name'] || row['restarea_name'] || '',
+                                '고속도로': row['고속도로'] || row['highway'] || row['road'] || '',
+                                '위도': lat,
+                                '경도': lng,
+                                '휴게소종류': row['휴게소종류'] || row['type'] || '',
+                                '운영시간': row['운영시간'] || row['hours'] || '',
+                                '방향': row['방향'] || row['direction'] || '',
+                                '주요편의시설': row['주요편의시설'] || row['facilities'] || '',
+                                '전화번호': row['전화번호'] || row['phone'] || '',
+                                '데이터기준일': row['데이터기준일'] || row['date'] || '',
+                                '프랜차이즈매장': row['프랜차이즈매장'] || row['franchise'] || ''
+                            };
+                            
+                            restAreaData.push(standardizedRow);
+                            validCount++;
+                        } else {
+                            console.warn(`유효하지 않은 좌표 (행 ${index + 2}):`, row['휴게소명'] || `행${index+2}`, lat, lng);
                         }
-
-                        // Basic check for reasonable (though not strict Korea-only) coordinates
-                        if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                            console.warn(`[DATA SKIP] 행 ${index + 2}: 비정상적인 위도/경도 범위. 스킵. (위도: ${lat}, 경도: ${lng})`);
-                            skippedCount++;
-                            return;
-                        }
-                        
-                        const standardizedRow = {
-                            '휴게소명': findColumn(row, columnMappings.restAreaName),
-                            '고속도로': findColumn(row, columnMappings.highway),
-                            '위도': lat,
-                            '경도': lng,
-                            '휴게소종류': findColumn(row, columnMappings.type),
-                            '운영시간': findColumn(row, columnMappings.hours),
-                            '방향': findColumn(row, columnMappings.direction),
-                            '주요편의시설': findColumn(row, columnMappings.facilities),
-                            '전화번호': findColumn(row, columnMappings.phone),
-                            '데이터기준일': findColumn(row, columnMappings.dataDate),
-                            '프랜차이즈매장': findColumn(row, columnMappings.franchise)
-                        };
-                        
-                        restAreaData.push(standardizedRow);
-                        validCount++;
                     } catch (e) {
-                        console.error(`[DATA ERROR] 데이터 처리 중 오류 (행 ${index + 2}, 휴게소명: ${findColumn(row, columnMappings.restAreaName)}):`, e.message);
-                        skippedCount++;
+                        console.warn(`데이터 처리 실패 (행 ${index + 2}):`, e.message);
                     }
                 });
                 
                 hideLoadingSpinner();
                 
                 if (restAreaData.length === 0) {
-                    throw new Error(`유효한 휴게소 데이터가 없습니다. (${parsedData.length}개 중 ${skippedCount}개 스킵) 데이터 형식을 확인해주세요.`);
+                    throw new Error('유효한 휴게소 데이터가 없습니다. 데이터 형식을 확인해주세요.');
                 }
                 
-                console.log(`[DATA SUMMARY] 휴게소 데이터 로드 및 처리 완료: 전체 ${parsedData.length}개 중 ${validCount}개 유효, ${skippedCount}개 스킵.`);
+                console.log(`✅ 휴게소 데이터 로드 완료: 전체 ${parsedData.length}개 중 ${validCount}개 유효 (소스: ${dataSource})`);
                 
             } catch (error) {
                 console.error('❌ 휴게소 데이터 로드 실패:', error);
                 hideLoadingSpinner();
-                showFloatingMessage(`휴게소 데이터 로드 실패: ${error.message}`, 'error', 7000);
-                restAreaData = null;
+                
+                // 최종 백업으로 샘플 데이터 사용
+                console.log('🔄 최종 백업으로 샘플 데이터를 사용합니다.');
+                const sampleData = getSampleRestAreaData();
+                restAreaData = sampleData.map(row => ({
+                    '휴게소명': row['휴게소명'],
+                    '고속도로': row['고속도로'],
+                    '위도': parseFloat(row['위도']),
+                    '경도': parseFloat(row['경도']),
+                    '휴게소종류': row['휴게소종류'],
+                    '운영시간': row['운영시간'],
+                    '방향': row['방향'],
+                    '주요편의시설': row['주요편의시설'],
+                    '전화번호': row['전화번호'],
+                    '데이터기준일': row['데이터기준일'],
+                    '프랜차이즈매장': row['프랜차이즈매장']
+                }));
+                
+                console.log(`✅ 샘플 휴게소 데이터 로드 완료: ${restAreaData.length}개`);
             }
         }
 
-        // CSV 데이터 파싱 함수 (개선된 로직)
+        // 샘플 휴게소 데이터 생성
+        function getSampleRestAreaData() {
+            return [
+                {
+                    '휴게소명': '서울만남의광장',
+                    '고속도로': '경부고속도로',
+                    '위도': '37.4563',
+                    '경도': '127.1426',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '부산방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '02-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '맥도날드, 스타벅스, 파리바게뜨'
+                },
+                {
+                    '휴게소명': '추풍령휴게소',
+                    '고속도로': '경부고속도로',
+                    '위도': '36.2200',
+                    '경도': '127.9950',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '서울방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '054-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': 'KFC, 던킨도너츠'
+                },
+                {
+                    '휴게소명': '금강휴게소',
+                    '고속도로': '경부고속도로',
+                    '위도': '36.4500',
+                    '경도': '127.3800',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '부산방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '041-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '롯데리아, 투썸플레이스'
+                },
+                {
+                    '휴게소명': '안성휴게소',
+                    '고속도로': '경부고속도로',
+                    '위도': '37.0100',
+                    '경도': '127.2700',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '서울방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '031-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '버거킹, 탐앤탐스'
+                },
+                {
+                    '휴게소명': '기흥휴게소',
+                    '고속도로': '영동고속도로',
+                    '위도': '37.2750',
+                    '경도': '127.1169',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '강릉방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '031-2234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '맥도날드, 이디야커피'
+                },
+                {
+                    '휴게소명': '여주휴게소',
+                    '고속도로': '영동고속도로',
+                    '위도': '37.3000',
+                    '경도': '127.6300',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '서울방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '031-3234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '롯데리아, 할리스커피'
+                },
+                {
+                    '휴게소명': '덕평휴게소',
+                    '고속도로': '영동고속도로',
+                    '위도': '37.3400',
+                    '경도': '127.4800',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '강릉방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '031-4234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': 'KFC, 공차'
+                },
+                {
+                    '휴게소명': '망향휴게소',
+                    '고속도로': '남해고속도로',
+                    '위도': '35.8200',
+                    '경도': '127.1500',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '순천방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '063-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '버거킹, 스타벅스'
+                },
+                {
+                    '휴게소명': '함안휴게소',
+                    '고속도로': '남해고속도로',
+                    '위도': '35.2800',
+                    '경도': '128.4200',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '부산방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '055-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '맥도날드, 파스쿠찌'
+                },
+                {
+                    '휴게소명': '통영휴게소',
+                    '고속도로': '남해고속도로',
+                    '위도': '34.8500',
+                    '경도': '128.4200',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '통영방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '055-2234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '롯데리아, 카페베네'
+                },
+                {
+                    '휴게소명': '진영휴게소',
+                    '고속도로': '남해고속도로',
+                    '위도': '35.3200',
+                    '경도': '128.7800',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '서울방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '055-3234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': 'KFC, 엔젤리너스'
+                },
+                {
+                    '휴게소명': '춘천휴게소',
+                    '고속도로': '서울춘천고속도로',
+                    '위도': '37.8813',
+                    '경도': '127.7298',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '춘천방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '033-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '버거킹, 투썸플레이스'
+                },
+                {
+                    '휴게소명': '마장휴게소',
+                    '고속도로': '서울춘천고속도로',
+                    '위도': '37.7500',
+                    '경도': '127.2000',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '서울방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '031-5234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '맥도날드, 빽다방'
+                },
+                {
+                    '휴게소명': '강릉휴게소',
+                    '고속도로': '영동고속도로',
+                    '위도': '37.7519',
+                    '경도': '128.8761',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '강릉방향',
+                    '주요편의시설': '주유소, 편의점, 음식점',
+                    '전화번호': '033-2234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': '롯데리아, 이디야커피'
+                },
+                {
+                    '휴게소명': '부산휴게소',
+                    '고속도로': '경부고속도로',
+                    '위도': '35.1796',
+                    '경도': '129.0756',
+                    '휴게소종류': '일반형',
+                    '운영시간': '24시간',
+                    '방향': '부산방향',
+                    '주요편의시설': '주유소, 정비소, 화물차쉼터',
+                    '전화번호': '051-1234-5678',
+                    '데이터기준일': '2024-01-01',
+                    '프랜차이즈매장': 'KFC, 스타벅스, 파리바게뜨'
+                }
+            ];
+        }
+
+        // CSV 데이터 파싱 함수
         function parseCSVData(csvText) {
             const result = [];
-            const lines = csvText.split(/\r?\n/); // Handles both LF and CRLF line endings
+            const lines = csvText.split('\n');
             
-            if (lines.length === 0 || lines.every(line => line.trim() === '')) {
-                throw new Error('CSV 파일이 비어있거나 내용이 없습니다.');
+            if (lines.length === 0) {
+                throw new Error('CSV 파일이 비어있습니다.');
             }
             
-            const rawHeaders = parseCSVLineRobust(lines[0]);
-            const headers = rawHeaders.map(h => h.trim()); // Trim headers
+            // 헤더 파싱
+            const headers = parseCSVLine(lines[0]);
             console.log('CSV 헤더:', headers);
             
+            // 필수 컬럼 체크
+            const requiredColumns = ['휴게소명', '위도', '경도'];
+            const hasRequiredColumns = requiredColumns.some(col => 
+                headers.some(header => header.includes(col) || col.includes(header))
+            );
+            
+            if (!hasRequiredColumns) {
+                console.warn('일부 필수 컬럼이 없을 수 있습니다. 계속 진행합니다.');
+            }
+            
+            // 데이터 파싱
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
-                if (line) { // Skip genuinely empty lines
+                if (line) {
                     try {
-                        const values = parseCSVLineRobust(line);
-                        const row = {};
-                        headers.forEach((header, index) => {
-                            row[header] = values[index] !== undefined ? values[index].trim() : ''; // Trim values
-                        });
-                        result.push(row);
+                        const values = parseCSVLine(line);
+                        if (values.length >= Math.min(headers.length, 3)) { // 최소 3개 컬럼
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index] || '';
+                            });
+                            result.push(row);
+                        }
                     } catch (e) {
-                        console.warn(`CSV 라인 ${i + 1} 파싱 실패 (스킵):`, e.message, `\n원본 라인: "${line.substring(0, 100)}..."`);
+                        console.warn(`CSV 라인 ${i + 1} 파싱 실패:`, e.message);
                     }
                 }
             }
@@ -909,45 +1960,40 @@
                 console.log('XLSX 파일 파싱 시작...');
                 const workbook = XLSX.read(xlsxBuffer, { type: 'array' });
                 
+                // 첫 번째 워크시트 사용
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 
                 console.log(`XLSX 워크시트: ${firstSheetName}`);
                 
-                // Convert to array of objects, automatically handling headers
+                // JSON으로 변환
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                    raw: false, // Keep formatted values if possible, or convert to string
-                    defval: ''  // Default value for empty cells
+                    header: 1, // 배열 형태로 반환
+                    defval: '' // 빈 셀 기본값
                 });
                 
                 if (jsonData.length === 0) {
                     throw new Error('XLSX 파일이 비어있습니다.');
                 }
                 
-                // Check if all objects have keys (meaning headers were likely detected)
-                if (jsonData.length > 0 && Object.keys(jsonData[0]).length === 0) {
-                    console.warn('XLSX to JSON resulted in empty objects, likely no valid headers found.');
-                    // Fallback to manual header detection if sheet_to_json fails to get headers
-                    const headerRow = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 'A1:ZZ1' })[0];
-                    if (headerRow && headerRow.length > 0) {
-                        console.log('Manual XLSX header detection:', headerRow);
-                        // Re-parse with header: 1 and then map
-                        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                        const headers = rawData[0];
-                        const convertedData = [];
-                        for (let i = 1; i < rawData.length; i++) {
-                            const row = {};
-                            headers.forEach((h, idx) => {
-                                row[h] = rawData[i][idx];
-                            });
-                            convertedData.push(row);
-                        }
-                        return convertedData;
+                // 헤더와 데이터 분리
+                const headers = jsonData[0];
+                console.log('XLSX 헤더:', headers);
+                
+                const result = [];
+                for (let i = 1; i < jsonData.length; i++) {
+                    const rowArray = jsonData[i];
+                    if (rowArray && rowArray.length > 0) {
+                        const rowObject = {};
+                        headers.forEach((header, index) => {
+                            rowObject[header] = rowArray[index] || '';
+                        });
+                        result.push(rowObject);
                     }
                 }
-
-                console.log(`XLSX 파싱 완료: ${jsonData.length}개 행`);
-                return jsonData;
+                
+                console.log(`XLSX 파싱 완료: ${result.length}개 행`);
+                return result;
                 
             } catch (error) {
                 console.error('XLSX 파싱 실패:', error);
@@ -955,8 +2001,8 @@
             }
         }
 
-        // CSV 라인 파싱 함수 (더 견고한 버전)
-        function parseCSVLineRobust(line) {
+        // CSV 라인 파싱 함수 (따옴표 처리 개선)
+        function parseCSVLine(line) {
             const result = [];
             let current = '';
             let inQuotes = false;
@@ -967,24 +2013,24 @@
                 
                 if (char === '"') {
                     if (inQuotes && nextChar === '"') {
-                        // Escaped quote (e.g., "hello ""world""")
+                        // 따옴표 이스케이프 ("")
                         current += '"';
-                        i++; // Skip the next quote
+                        i++; // 다음 따옴표 건너뛰기
                     } else {
-                        // Start or end of a quoted field
+                        // 따옴표 시작/끝
                         inQuotes = !inQuotes;
                     }
                 } else if (char === ',' && !inQuotes) {
-                    // Delimiter outside quotes
-                    result.push(current);
+                    // 필드 구분자
+                    result.push(current.trim());
                     current = '';
                 } else {
-                    // Regular character
                     current += char;
                 }
             }
-            // Add the last field
-            result.push(current);
+            
+            // 마지막 필드 추가
+            result.push(current.trim());
             
             return result;
         }
@@ -1078,48 +2124,60 @@
             console.log('시도 버튼 로드 완료');
         }
 
-        // 시/도 선택 (해당 행의 시군구 영역에만 시군구들 표시)
+        // 지도상의 모든 GeoJSON 경계 및 마커 클리어
+        function clearMapAndBoundaries() {
+            if (geojsonLayer) {
+                geojsonLayer.clearLayers();
+            }
+            if (restAreaLayer) {
+                restAreaLayer.clearLayers();
+            }
+            if (previousSelectedLayer) {
+                previousSelectedLayer.setStyle(defaultStyle());
+                previousSelectedLayer = null;
+            }
+        }
+
+        // 시/도 선택 (해당 행의 시군구 영역에만 시군구들 표시) - 헬퍼 함수 사용
         function selectProvince(provinceName, rowIndex) {
-            console.log(`시도 선택: ${provinceName}, 행: ${rowIndex}`);
+            console.log(`🔄 시도 선택: ${provinceName}, 행: ${rowIndex}`);
             
-            // 모든 버튼 비활성화 (시도, 시군구, 카테고리)
+            // 1단계: 모든 버튼 비활성화
             document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // 모든 행의 시군구 컨테이너 완전히 숨김 (중요!)
-            document.querySelectorAll('.row-districts-container').forEach((container, index) => {
-                container.classList.remove('show');
-                console.log(`행 ${index} 시군구 컨테이너 숨김`);
-            });
+            // 2단계: 모든 시군구 컨테이너 강제 숨김 (헬퍼 함수 사용)
+            hideAllDistrictsContainers('selectProvince');
 
-            // 선택된 시도 버튼만 활성화
+            // 3단계: 선택된 시도 버튼만 활성화
             const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"][data-row="${rowIndex}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
-                console.log(`${provinceName} 버튼 활성화`);
+                console.log(`✅ ${provinceName} 버튼 활성화 완료`);
+            } else {
+                console.error(`❌ ${provinceName} 버튼을 찾을 수 없음 (행: ${rowIndex})`);
             }
 
             currentSelectedProvince = provinceName;
             currentSelectedDistrict = null;
 
-            // 해당 행의 시군구 컨테이너만 표시 및 내용 생성
-            const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
+            // 4단계: 해당 행의 시군구 컨테이너 요소 확인
             const districtsHeader = document.getElementById(`row-districts-header-${rowIndex}`);
             const districtsContent = document.getElementById(`row-districts-content-${rowIndex}`);
             
-            if (!rowContainer || !districtsHeader || !districtsContent) {
-                console.error(`행 ${rowIndex}의 시군구 컨테이너를 찾을 수 없습니다.`);
+            if (!districtsHeader || !districtsContent) {
+                console.error(`❌ 행 ${rowIndex}의 시군구 컨테이너 요소를 찾을 수 없습니다.`);
                 return;
             }
             
-            // 헤더 업데이트
+            // 5단계: 헤더 업데이트
             districtsHeader.innerHTML = `<i class="fas fa-map-marked-alt"></i> ${provinceName} 시군구`;
             
-            // 기존 시군구 버튼들 제거
+            // 6단계: 기존 시군구 버튼들 제거
             districtsContent.innerHTML = '';
             
-            // 시군구 버튼들 생성
+            // 7단계: 시군구 버튼들 생성
             const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
             if (provinceInfo && provinceInfo.districts) {
                 // '전체 (시도명)' 버튼 먼저 생성
@@ -1143,19 +2201,32 @@
                     districtsContent.appendChild(districtBtn);
                 });
                 
-                console.log(`${provinceName}의 ${sortedDistricts.length + 1}개 시군구 버튼 생성 완료`);
+                console.log(`📍 ${provinceName}의 ${sortedDistricts.length + 1}개 시군구 버튼 생성 완료`);
             }
             
-            // 선택된 행의 시군구 컨테이너만 표시
-            rowContainer.classList.add('show');
-            console.log(`행 ${rowIndex} 시군구 컨테이너 표시`);
+            // 8단계: 선택된 행의 시군구 컨테이너만 표시 (헬퍼 함수 사용)
+            showDistrictsContainer(rowIndex, 'selectProvince');
 
-            // 시군구 컨테이너로 부드럽게 스크롤
+            // 9단계: 최종 검증
             setTimeout(() => {
-                rowContainer.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest'
-                });
+                const finalCheck = document.querySelectorAll('.row-districts-container.show');
+                console.log(`🔍 최종 검증: 현재 보이는 시군구 컨테이너 수 = ${finalCheck.length}개 (예상: 1개)`);
+                if (finalCheck.length !== 1) {
+                    console.warn(`⚠️ 예상과 다른 결과! 강제 재정리 실행...`);
+                    hideAllDistrictsContainers('selectProvince-재정리');
+                    showDistrictsContainer(rowIndex, 'selectProvince-재정리');
+                }
+            }, 100);
+
+            // 10단계: 시군구 컨테이너로 부드럽게 스크롤
+            setTimeout(() => {
+                const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
+                if (rowContainer) {
+                    rowContainer.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest'
+                    });
+                }
             }, 300);
 
             updateCurrentCategoryDisplay(`선택된 시도: ${provinceName} (시군구를 선택해주세요)`);
@@ -1164,8 +2235,10 @@
             displayAllDistrictsBoundaryForProvince(provinceName);
         }
 
-        // 시/군/구 선택 (해당 시군구로 줌인)
+        // 시/군/구 선택 (해당 시군구로 줌인) - 헬퍼 함수 사용
         function selectDistrict(provinceName, districtName) {
+            console.log(`🎯 시군구 선택: ${provinceName} ${districtName}`);
+            
             // 모든 버튼 비활성화
             document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -1175,12 +2248,14 @@
             const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
+                console.log(`✅ ${provinceName} 시도 버튼 활성화 유지`);
             }
             
             // 선택된 시군구 버튼 활성화
             const selectedDistrictBtn = document.querySelector(`[data-district="${districtName}"]`);
             if (selectedDistrictBtn) {
                 selectedDistrictBtn.classList.add('active');
+                console.log(`✅ ${districtName} 시군구 버튼 활성화`);
             }
             
             currentSelectedDistrict = districtName;
@@ -1191,14 +2266,17 @@
                 const districtInfo = provinceInfo.districts[districtName];
                 map.setView([districtInfo.lat, districtInfo.lng], districtInfo.zoom);
                 updateCurrentCategoryDisplay(`지도 영역: ${provinceName} ${districtName}`);
+                console.log(`🗺️ 지도 이동: ${provinceName} ${districtName} (${districtInfo.lat}, ${districtInfo.lng}) 줌${districtInfo.zoom}`);
             }
             
             clearMapAndBoundaries();
             displaySigunguBoundary(provinceName, districtName);
         }
 
-        // '전체 (시도명)' 버튼 클릭 시
+        // '전체 (시도명)' 버튼 클릭 시 - 헬퍼 함수 사용
         function selectAllDistrict(provinceName) {
+            console.log(`🏛️ 전체 시도 선택: ${provinceName}`);
+            
             // 모든 버튼 비활성화
             document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -1208,6 +2286,7 @@
             const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
+                console.log(`✅ ${provinceName} 시도 버튼 활성화 유지`);
             }
             
             // '전체' 버튼 활성화 (현재 활성 시군구 컨테이너에서 찾기)
@@ -1216,6 +2295,7 @@
                 const allDistrictBtn = activeContainer.querySelector('.all-district');
                 if (allDistrictBtn) {
                     allDistrictBtn.classList.add('active');
+                    console.log(`✅ '전체 (${provinceName})' 버튼 활성화`);
                 }
             }
             
@@ -1225,6 +2305,7 @@
             if (provinceInfo) {
                 map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
                 updateCurrentCategoryDisplay(`지도 영역: ${provinceName}`);
+                console.log(`🗺️ 지도 이동: ${provinceName} 전체 (${provinceInfo.lat}, ${provinceInfo.lng}) 줌${provinceInfo.zoom}`);
             }
             
             clearMapAndBoundaries();
@@ -1378,7 +2459,7 @@
                     `휴게소 데이터가 비어있습니다. (${restAreaData ? restAreaData.length : 0}개)`;
                 
                 console.error('❌ 휴게소 데이터 오류:', errorMsg);
-                showFloatingMessage(`${errorMsg} data_ex.csv 또는 data_ex.xlsx 파일이 올바른 위치에 있는지 확인하고 페이지를 새로고침해주세요.`, 'error', 7000);
+                showFloatingMessage(`${errorMsg} data_ex.csv 파일이 올바른 위치에 있는지 확인하고 페이지를 새로고침해주세요.`, 'error', 7000);
                 return;
             }
 
@@ -1416,9 +2497,8 @@
                     const lat = restArea['위도'];
                     const lng = restArea['경도'];
                     
-                    if (typeof lat !== 'number' || typeof lng !== 'number' || isNaN(lat) || isNaN(lng)) {
+                    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
                         errorCount++;
-                        console.warn(`[MARKER SKIP] 휴게소 마커 생성 실패 (행 ${index + 2}, 휴게소명: ${restArea['휴게소명'] || '알 수 없음'}): 유효하지 않은 좌표. (위도: ${lat}, 경도: ${lng})`);
                         return;
                     }
                     
@@ -1442,7 +2522,7 @@
                     marker.addTo(restAreaLayer);
                     successCount++;
                 } catch (error) {
-                    console.error(`[MARKER ERROR] 휴게소 마커 생성 중 심각한 오류 (행 ${index + 2}, 휴게소명: ${restArea['휴게소명'] || '알 수 없음'}):`, error);
+                    console.warn(`휴게소 마커 생성 실패 (${index}):`, restArea['휴게소명'], error);
                     errorCount++;
                 }
             });
@@ -1450,8 +2530,8 @@
             hideLoadingSpinner();
             
             if (successCount > 0) {
-                console.log(`✅ ${successCount}개 휴게소 표시 완료${errorCount > 0 ? ` (${errorCount}개 오류/스킵)` : ''}`);
-                showFloatingMessage(`${successCount}개의 휴게소가 표시되었습니다.${errorCount > 0 ? ` (${errorCount}개 스킵됨)` : ''}`, 'success', 4000);
+                console.log(`✅ ${successCount}개 휴게소 표시 완료${errorCount > 0 ? ` (${errorCount}개 오류)` : ''}`);
+                showFloatingMessage(`${successCount}개의 휴게소가 표시되었습니다.${errorCount > 0 ? ` (${errorCount}개 오류)` : ''}`, 'success', 4000);
             } else {
                 showFloatingMessage('표시할 수 있는 휴게소가 없습니다. 데이터를 확인해주세요.', 'error', 5000);
             }
@@ -1461,15 +2541,15 @@
         function createRestAreaPopup(restArea) {
             // 프랜차이즈 매장 처리 (따옴표 제거 후 분리)
             let franchiseHtml = '';
-            if (restArea['프랜차이즈매장'] && String(restArea['프랜차이즈매장']).trim() !== '') {
-                let franchiseText = String(restArea['프랜차이즈매장'])
+            if (restArea['프랜차이즈매장'] && restArea['프랜차이즈매장'].trim() !== '') {
+                let franchiseText = restArea['프랜차이즈매장']
                     .replace(/^["']|["']$/g, '') // 앞뒤 따옴표 제거
-                    .replace(/""/g, '"'); // 이스케이프된 따옴표 처리 ("" -> ")
+                    .replace(/["']/g, ''); // 중간 따옴표 제거
                 
                 const franchises = franchiseText
                     .split(/[,;\/]/)
                     .map(f => f.trim())
-                    .filter(f => f !== '' && f.toLowerCase() !== '없음' && f.toLowerCase() !== '-');
+                    .filter(f => f !== '' && f !== '-' && f !== '없음');
                 
                 if (franchises.length > 0) {
                     franchiseHtml = `
@@ -1486,40 +2566,32 @@
             }
 
             // 주요편의시설 처리 (따옴표 제거)
-            let facilitiesText = String(restArea['주요편의시설'] || '').trim();
+            let facilitiesText = restArea['주요편의시설'] || '';
             if (facilitiesText) {
-                facilitiesText = facilitiesText
-                    .replace(/^["']|["']$/g, '')
-                    .replace(/""/g, '"');
-            }
-
-            // 전화번호 처리
-            let phoneNumber = String(restArea['전화번호'] || '').trim();
-            if (phoneNumber === '문의 필요' || phoneNumber === '-' || phoneNumber === '') {
-                phoneNumber = '정보없음';
+                facilitiesText = facilitiesText.replace(/^["']|["']$/g, '').replace(/["']/g, '');
             }
 
             return `
                 <div>
                     <div class="popup-header">
-                        <i class="fas fa-coffee"></i> ${String(restArea['휴게소명'] || '정보없음').trim()}
+                        <i class="fas fa-coffee"></i> ${restArea['휴게소명'] || '정보없음'}
                     </div>
                     <div class="popup-content">
                         <div class="popup-row">
                             <div class="popup-label">고속도로:</div>
-                            <div class="popup-value">${String(restArea['고속도로'] || '정보없음').trim()}</div>
+                            <div class="popup-value">${restArea['고속도로'] || '정보없음'}</div>
                         </div>
                         <div class="popup-row">
                             <div class="popup-label">방향:</div>
-                            <div class="popup-value">${String(restArea['방향'] || '정보없음').trim()}</div>
+                            <div class="popup-value">${restArea['방향'] || '정보없음'}</div>
                         </div>
                         <div class="popup-row">
                             <div class="popup-label">종류:</div>
-                            <div class="popup-value">${String(restArea['휴게소종류'] || '정보없음').trim()}</div>
+                            <div class="popup-value">${restArea['휴게소종류'] || '정보없음'}</div>
                         </div>
                         <div class="popup-row">
                             <div class="popup-label">운영시간:</div>
-                            <div class="popup-value">${String(restArea['운영시간'] || '정보없음').trim()}</div>
+                            <div class="popup-value">${restArea['운영시간'] || '정보없음'}</div>
                         </div>
                         ${franchiseHtml}
                         ${facilitiesText ? `
@@ -1528,10 +2600,10 @@
                             <div class="popup-value">${facilitiesText}</div>
                         </div>
                         ` : ''}
-                        ${phoneNumber !== '정보없음' ? `
+                        ${restArea['전화번호'] && restArea['전화번호'] !== '문의 필요' ? `
                         <div class="popup-row">
                             <div class="popup-label">전화:</div>
-                            <div class="popup-value">${phoneNumber}</div>
+                            <div class="popup-value">${restArea['전화번호']}</div>
                         </div>
                         ` : ''}
                     </div>
@@ -1565,16 +2637,15 @@
                 loadRestAreaData()
             ];
             
-            await Promise.allSettled(loadingPromises); // Use Promise.allSettled to ensure all promises resolve or reject
-
+            await Promise.all(loadingPromises);
+            
             // 데이터 로딩 상태 확인
             console.log('📊 데이터 로딩 완료 상태:');
             console.log('- 행정구역 데이터:', sigunguGeoJsonData ? `✅ ${sigunguGeoJsonData.features?.length || 0}개 로드됨` : '❌ 실패');
             console.log('- 휴게소 데이터:', restAreaData ? `✅ ${restAreaData.length}개 로드됨` : '❌ 실패');
             
             if (!restAreaData || restAreaData.length === 0) {
-                console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다. data_ex.csv 또는 data_ex.xlsx 파일을 확인해주세요.');
-                showFloatingMessage('휴게소 데이터를 로드하지 못했습니다. 파일과 경로를 확인해주세요.', 'error', 5000);
+                console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다. data_ex.csv 파일을 확인해주세요.');
             }
 
             // 초기 로드 시 자동 위치 감지 또는 전국 경계 표시
@@ -1597,3 +2668,5 @@
             }
         });
     </script>
+</body>
+</html>

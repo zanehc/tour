@@ -2206,7 +2206,7 @@
             };
         }
 
-        // 시/도 목록 로드 (행별 시군구 컨테이너 방식 + 동적 마진)
+        // 시/도 목록 로드 (기본 마진으로 초기화)
         function loadProvinces() {
             const containerDiv = document.getElementById('administrative-container');
             containerDiv.innerHTML = '';
@@ -2230,25 +2230,13 @@
                 
                 console.log(`행 ${rowIndex}: ${rowProvinces.join(', ')}`);
                 
-                // 이 행에서 가장 많은 시군구를 가진 시도 찾기
-                let maxDistricts = 0;
-                rowProvinces.forEach(provinceName => {
-                    const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
-                    if (provinceInfo && provinceInfo.districts) {
-                        const districtCount = Object.keys(provinceInfo.districts).length;
-                        maxDistricts = Math.max(maxDistricts, districtCount);
-                    }
-                });
-                
                 // 행 컨테이너 생성
                 const provinceRow = document.createElement('div');
                 provinceRow.className = 'provinces-row';
+                provinceRow.id = `province-row-${rowIndex}`;
                 
-                // 동적 마진 적용 (가장 많은 시군구를 가진 시도 기준)
-                const dynamicMargin = Math.max(8, Math.ceil(maxDistricts / 3) * 4 + 8);
-                provinceRow.style.marginBottom = `${dynamicMargin}px`;
-                
-                console.log(`행 ${rowIndex} 마진: ${dynamicMargin}px (최대 시군구: ${maxDistricts}개)`);
+                // 초기에는 기본 마진 적용 (8px)
+                provinceRow.style.marginBottom = '8px';
                 
                 // 시도 버튼들 컨테이너 생성 (가로 배치)
                 const rowButtons = document.createElement('div');
@@ -2286,7 +2274,25 @@
                 containerDiv.appendChild(provinceRow);
             }
             
-            console.log('시도 버튼 로드 완료 (동적 마진 적용)');
+            console.log('시도 버튼 로드 완료 (기본 마진 적용)');
+        }
+
+        // 모든 시도 행의 마진을 기본값으로 리셋
+        function resetAllProvinceRowMargins() {
+            document.querySelectorAll('.provinces-row').forEach(row => {
+                row.style.marginBottom = '8px';
+            });
+        }
+
+        // 특정 행의 마진을 동적으로 조정
+        function updateProvinceRowMargin(rowIndex, districtCount) {
+            const provinceRow = document.getElementById(`province-row-${rowIndex}`);
+            if (provinceRow) {
+                // 시군구 개수에 따른 동적 마진 계산
+                const dynamicMargin = Math.max(8, Math.ceil(districtCount / 3) * 4 + 8);
+                provinceRow.style.marginBottom = `${dynamicMargin}px`;
+                console.log(`행 ${rowIndex} 마진 업데이트: ${dynamicMargin}px (시군구: ${districtCount}개)`);
+            }
         }
 
         // 지도상의 모든 GeoJSON 경계 및 마커 클리어
@@ -2303,7 +2309,7 @@
             }
         }
 
-        // 시/도 선택 (해당 행의 시군구 영역에만 시군구들 표시) - 헬퍼 함수 사용
+        // 시/도 선택 (동적 마진 적용)
         function selectProvince(provinceName, rowIndex) {
             console.log(`🔄 시도 선택: ${provinceName}, 행: ${rowIndex}`);
             
@@ -2312,8 +2318,9 @@
                 btn.classList.remove('active');
             });
             
-            // 2단계: 모든 시군구 컨테이너 강제 숨김 (헬퍼 함수 사용)
+            // 2단계: 모든 시군구 컨테이너 강제 숨김 + 모든 마진 리셋
             hideAllDistrictsContainers('selectProvince');
+            resetAllProvinceRowMargins();
 
             // 3단계: 선택된 시도 버튼만 활성화
             const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"][data-row="${rowIndex}"]`);
@@ -2350,21 +2357,13 @@
             const dynamicHeight = calculateDistrictsContainerHeight(districtCount);
             districtsContainer.style.minHeight = `${dynamicHeight}px`;
             
+            // 9단계: 시군구 개수에 따른 동적 마진 적용
+            updateProvinceRowMargin(rowIndex, districtCount);
+            
             console.log(`📍 ${provinceName}의 ${districtCount}개 시군구 버튼 생성 완료 (높이: ${dynamicHeight}px)`);
             
-            // 9단계: 선택된 행의 시군구 컨테이너만 표시 (헬퍼 함수 사용)
+            // 10단계: 선택된 행의 시군구 컨테이너만 표시
             showDistrictsContainer(rowIndex, 'selectProvince');
-
-            // 10단계: 최종 검증
-            setTimeout(() => {
-                const finalCheck = document.querySelectorAll('.row-districts-container.show');
-                console.log(`🔍 최종 검증: 현재 보이는 시군구 컨테이너 수 = ${finalCheck.length}개 (예상: 1개)`);
-                if (finalCheck.length !== 1) {
-                    console.warn(`⚠️ 예상과 다른 결과! 강제 재정리 실행...`);
-                    hideAllDistrictsContainers('selectProvince-재정리');
-                    showDistrictsContainer(rowIndex, 'selectProvince-재정리');
-                }
-            }, 100);
 
             // 11단계: 시군구 컨테이너로 부드럽게 스크롤
             setTimeout(() => {
@@ -2421,7 +2420,7 @@
             displaySigunguBoundary(provinceName, districtName);
         }
 
-        // '전체 (시도명)' 버튼 클릭 시
+        // '전체 (시도명)' 버튼 클릭 시 (마진 유지)
         function selectAllDistrict(provinceName) {
             console.log(`🏛️ 전체 시도 선택: ${provinceName}`);
             
@@ -2465,15 +2464,16 @@
             document.getElementById('currentCategoryDisplay').innerHTML = text;
         }
 
-        // 전국 선택
+        // 전국 선택 (마진 리셋)
         function selectAdministrativeDivision(region) {
             // 모든 버튼 비활성화
             document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // 모든 시군구 컨테이너 숨김
+            // 모든 시군구 컨테이너 숨김 + 마진 리셋
             hideAllDistrictsContainers('selectAdministrativeDivision');
+            resetAllProvinceRowMargins();
 
             // '전국' 버튼 활성화
             const allKoreaBtn = document.querySelector('.all-korea-btn');
@@ -2594,7 +2594,7 @@
             }).addTo(geojsonLayer);
         }
 
-        // 휴게소 표시 (개선된 버전)
+        // 휴게소 표시 (마진 리셋 포함)
         function showRestAreas() {
             console.log('🚗 휴게소 표시 요청...');
             
@@ -2613,8 +2613,9 @@
                 btn.classList.remove('active');
             });
             
-            // 모든 시군구 컨테이너 숨김
+            // 모든 시군구 컨테이너 숨김 + 마진 리셋
             hideAllDistrictsContainers('showRestAreas');
+            resetAllProvinceRowMargins();
             
             // 휴게소 버튼 활성화
             const restAreaBtn = document.querySelector('.category-btn[onclick="showRestAreas()"]');

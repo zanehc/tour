@@ -1166,7 +1166,7 @@
             });
         }
 
-        // 시/도 선택
+        // 시/도 선택 (줌인 없이 시군구 버튼만 생성)
         function selectProvince(provinceName) {
             document.querySelectorAll('#province-list .administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -1179,14 +1179,11 @@
             currentSelectedProvince = provinceName;
             currentSelectedDistrict = null;
 
-            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            // 시도 선택 시에는 줌인하지 않고 시군구 버튼만 생성
+            updateCurrentCategoryDisplay(`선택된 시도: ${provinceName} (시군구를 선택해주세요)`);
+            displayDistricts(provinceName);
             
-            if (provinceInfo) {
-                map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
-                updateCurrentCategoryDisplay(`지도 영역: ${provinceName}`);
-                displayDistricts(provinceName);
-            }
-            
+            // 기존 경계는 유지하되 시도의 경계만 표시
             clearMapAndBoundaries();
             displayAllDistrictsBoundaryForProvince(provinceName);
         }
@@ -1217,7 +1214,7 @@
             }
         }
 
-        // 시/군/구 선택
+        // 시/군/구 선택 (해당 시군구로 줌인)
         function selectDistrict(provinceName, districtName) {
             document.querySelectorAll('#district-list .administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
@@ -1229,6 +1226,7 @@
             
             currentSelectedDistrict = districtName;
 
+            // 시군구 선택 시에만 줌인 실행
             const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
             if (provinceInfo && provinceInfo.districts && provinceInfo.districts[districtName]) {
                 const districtInfo = provinceInfo.districts[districtName];

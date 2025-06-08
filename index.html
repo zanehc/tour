@@ -317,12 +317,19 @@
             box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
         }
 
-        /* 시도 버튼 그리드 레이아웃 */
-        .provinces-grid {
+        /* 시도 행별 배치 */
+        .provinces-row {
+            margin-bottom: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .provinces-row-buttons {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 6px;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         /* 시도 버튼 스타일 */
@@ -364,14 +371,14 @@
 
         /* 시도별 컨테이너 */
         .province-container {
-            margin-bottom: 8px;
+            margin-bottom: 12px; /* 기본 간격 증가 */
             display: flex;
             flex-direction: column;
             gap: 0;
         }
 
-        /* 개별 시군구 컨테이너 */
-        .individual-districts-container {
+        /* 행별 시군구 컨테이너 */
+        .row-districts-container {
             border: 1px solid #e9ecef;
             border-radius: 6px;
             background: white;
@@ -379,31 +386,14 @@
             display: none;
             margin-top: 6px;
             animation: slideDown 0.3s ease-out;
+            /* 높이는 JavaScript에서 동적으로 설정 */
         }
 
-        .individual-districts-container.show {
+        .row-districts-container.show {
             display: block;
         }
 
-        .shared-districts-content::-webkit-scrollbar {
-            width: 4px;
-        }
-        
-        .shared-districts-content::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 2px;
-        }
-        
-        .shared-districts-content::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 2px;
-        }
-        
-        .shared-districts-content::-webkit-scrollbar-thumb:hover {
-            background: #a1a1a1;
-        }
-
-        .individual-districts-header {
+        .row-districts-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 8px 12px;
@@ -414,32 +404,91 @@
             gap: 6px;
         }
 
-        .individual-districts-content {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
+        .row-districts-content {
             padding: 8px;
             background: #f8f9fa;
-            max-height: 150px;
+            /* max-height 제거하고 동적 높이 사용 */
             overflow-y: auto;
         }
 
-        /* 시군구 버튼 스타일 (카테고리 버튼과 유사하게) */
+        .row-districts-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .row-districts-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 2px;
+        }
+        
+        .row-districts-content::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 2px;
+        }
+        
+        .row-districts-content::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        /* 시군구 그리드 레이아웃 */
+        .districts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* 전체(시도명) 버튼 - 풀 너비 */
+        .district-btn.all-district {
+            grid-column: 1 / -1; /* 전체 너비 차지 */
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 1px solid #667eea;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .district-btn.all-district:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.15);
+        }
+
+        .district-btn.all-district.active {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
+        }
+
+        /* 시군구 버튼 스타일 (3개씩 그리드) */
         .district-btn {
-            width: 100%;
             background: white;
             border: 1px solid #e1e5e9;
-            padding: 6px 10px;
+            padding: 6px 4px;
             border-radius: 5px;
             cursor: pointer;
-            font-size: 10px;
+            font-size: 9px;
             font-weight: 500;
-            text-align: left;
+            text-align: center;
             transition: all 0.2s;
             color: #555;
             display: flex;
             align-items: center;
-            gap: 6px;
+            justify-content: center;
+            gap: 4px;
+            min-height: 32px;
+            line-height: 1.1;
+            word-break: keep-all;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .district-btn:hover {
@@ -456,26 +505,9 @@
         }
         
         .district-btn i {
-            font-size: 12px;
-            width: 14px;
+            font-size: 10px;
+            width: 12px;
             text-align: center;
-        }
-
-        /* 전체(시도명) 버튼 특별 스타일 */
-        .district-btn.all-district {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: 600;
-            border-color: #667eea;
-        }
-
-        .district-btn.all-district:hover {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-        }
-
-        .district-btn.all-district.active {
-            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
         }
         
         /* 지도 컨테이너 */
@@ -522,6 +554,17 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .error {
@@ -605,10 +648,9 @@
                 left: 15px;
             }
 
-            /* 모바일에서도 가로 배치 유지 */
+            /* 모바일에서도 시도 가로 배치 유지 */
             .provinces-row-buttons {
-                display: flex;
-                flex-direction: row;
+                grid-template-columns: repeat(3, 1fr);
                 gap: 4px;
             }
 
@@ -620,23 +662,37 @@
                 flex: 1;
             }
 
+            /* 모바일에서 시군구도 3개씩 그리드 유지 */
+            .districts-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 4px;
+            }
+
+            .district-btn.all-district {
+                font-size: 10px;
+                padding: 6px 8px;
+                margin-bottom: 4px;
+            }
+
+            .district-btn {
+                font-size: 8px;
+                padding: 4px 2px;
+                min-height: 28px;
+                line-height: 1.0;
+            }
+
+            .district-btn i {
+                font-size: 8px;
+                width: 10px;
+            }
+
             .row-districts-header {
                 font-size: 10px;
                 padding: 6px 10px;
             }
 
             .row-districts-content {
-                max-height: 180px;
-            }
-
-            .district-btn {
-                font-size: 9px;
-                padding: 5px 8px;
-            }
-
-            .district-btn i {
-                font-size: 10px;
-                width: 12px;
+                padding: 6px;
             }
 
             .category-section-content {
@@ -1112,6 +1168,113 @@
             }}
         };
         
+        // 시군구 개수에 따른 동적 높이 계산
+        function calculateDistrictsContainerHeight(districtCount) {
+            const allDistrictBtnHeight = 40; // '전체' 버튼 높이 + 마진
+            const buttonHeight = 32; // 각 버튼 높이
+            const gap = 6; // 그리드 간격
+            const padding = 16; // 컨테이너 패딩
+            const headerHeight = 35; // 헤더 높이
+            
+            // 실제 시군구 버튼 개수 (전체 버튼 제외)
+            const actualDistrictCount = districtCount - 1;
+            
+            // 3개씩 배치했을 때 필요한 행 수
+            const rows = Math.ceil(actualDistrictCount / 3);
+            
+            // 전체 높이 계산
+            const contentHeight = allDistrictBtnHeight + (rows * buttonHeight) + ((rows - 1) * gap) + padding;
+            const totalHeight = headerHeight + contentHeight;
+            
+            return Math.max(totalHeight, 100); // 최소 높이 보장
+        }
+
+        // 시군구 버튼들을 그리드로 생성하는 함수
+        function createDistrictsGrid(provinceName, container) {
+            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            if (!provinceInfo || !provinceInfo.districts) {
+                return 0;
+            }
+
+            // 전체 버튼 먼저 생성
+            const allDistrictBtn = document.createElement('button');
+            allDistrictBtn.className = 'district-btn all-district';
+            allDistrictBtn.innerHTML = `<i class="fas fa-map-marked-alt"></i> 전체 (${provinceName})`;
+            allDistrictBtn.onclick = () => selectAllDistrict(provinceName);
+            container.appendChild(allDistrictBtn);
+
+            // 나머지 시군구들을 정렬하여 그리드 컨테이너에 추가
+            const sortedDistricts = Object.keys(provinceInfo.districts)
+                .filter(d => d !== `전체 (${provinceName})`)
+                .sort();
+
+            if (sortedDistricts.length > 0) {
+                // 그리드 컨테이너 생성
+                const gridContainer = document.createElement('div');
+                gridContainer.className = 'districts-grid';
+                
+                sortedDistricts.forEach(districtName => {
+                    const districtBtn = document.createElement('button');
+                    districtBtn.className = 'district-btn';
+                    districtBtn.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${districtName}`;
+                    districtBtn.setAttribute('data-district', districtName);
+                    districtBtn.onclick = () => selectDistrict(provinceName, districtName);
+                    gridContainer.appendChild(districtBtn);
+                });
+                
+                container.appendChild(gridContainer);
+            }
+            
+            return sortedDistricts.length + 1; // 전체 버튼 포함
+        }
+
+        // 모든 시군구 컨테이너를 강제로 숨기는 헬퍼 함수
+        function hideAllDistrictsContainers(caller = '') {
+            console.log(`🔒 모든 시군구 컨테이너 숨김 요청 (호출자: ${caller})`);
+            
+            const allDistrictsContainers = document.querySelectorAll('.row-districts-container');
+            console.log(`   발견된 컨테이너 수: ${allDistrictsContainers.length}`);
+            
+            let hiddenCount = 0;
+            allDistrictsContainers.forEach((container, index) => {
+                const wasVisible = container.classList.contains('show');
+                
+                // 다중 방식으로 강제 숨김
+                container.classList.remove('show');
+                container.style.display = 'none';
+                container.style.visibility = 'hidden';
+                
+                if (wasVisible) {
+                    hiddenCount++;
+                    console.log(`   ✅ 행 ${index} 컨테이너 숨김 (이전: 보임)`);
+                } else {
+                    console.log(`   ➖ 행 ${index} 컨테이너 이미 숨김상태`);
+                }
+            });
+            
+            console.log(`📊 숨김 처리 완료: ${hiddenCount}개 컨테이너 숨김, ${allDistrictsContainers.length - hiddenCount}개 이미 숨김상태`);
+            return hiddenCount;
+        }
+
+        // 특정 시군구 컨테이너만 표시하는 헬퍼 함수
+        function showDistrictsContainer(rowIndex, caller = '') {
+            console.log(`🔓 행 ${rowIndex} 시군구 컨테이너 표시 요청 (호출자: ${caller})`);
+            
+            const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
+            if (!rowContainer) {
+                console.error(`❌ 행 ${rowIndex}의 시군구 컨테이너를 찾을 수 없음`);
+                return false;
+            }
+            
+            // 다중 방식으로 강제 표시
+            rowContainer.style.display = 'block';
+            rowContainer.style.visibility = 'visible';
+            rowContainer.classList.add('show');
+            
+            console.log(`✅ 행 ${rowIndex} 시군구 컨테이너 표시 완료`);
+            return true;
+        }
+
         // 지도 초기화
         function initializeMap() {
             try {
@@ -1507,53 +1670,6 @@
                      Math.sin(dLng/2) * Math.sin(dLng/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             return R * c;
-        }
-
-        // 모든 시군구 컨테이너를 강제로 숨기는 헬퍼 함수
-        function hideAllDistrictsContainers(caller = '') {
-            console.log(`🔒 모든 시군구 컨테이너 숨김 요청 (호출자: ${caller})`);
-            
-            const allDistrictsContainers = document.querySelectorAll('.row-districts-container');
-            console.log(`   발견된 컨테이너 수: ${allDistrictsContainers.length}`);
-            
-            let hiddenCount = 0;
-            allDistrictsContainers.forEach((container, index) => {
-                const wasVisible = container.classList.contains('show');
-                
-                // 다중 방식으로 강제 숨김
-                container.classList.remove('show');
-                container.style.display = 'none';
-                container.style.visibility = 'hidden';
-                
-                if (wasVisible) {
-                    hiddenCount++;
-                    console.log(`   ✅ 행 ${index} 컨테이너 숨김 (이전: 보임)`);
-                } else {
-                    console.log(`   ➖ 행 ${index} 컨테이너 이미 숨김상태`);
-                }
-            });
-            
-            console.log(`📊 숨김 처리 완료: ${hiddenCount}개 컨테이너 숨김, ${allDistrictsContainers.length - hiddenCount}개 이미 숨김상태`);
-            return hiddenCount;
-        }
-
-        // 특정 시군구 컨테이너만 표시하는 헬퍼 함수
-        function showDistrictsContainer(rowIndex, caller = '') {
-            console.log(`🔓 행 ${rowIndex} 시군구 컨테이너 표시 요청 (호출자: ${caller})`);
-            
-            const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
-            if (!rowContainer) {
-                console.error(`❌ 행 ${rowIndex}의 시군구 컨테이너를 찾을 수 없음`);
-                return false;
-            }
-            
-            // 다중 방식으로 강제 표시
-            rowContainer.style.display = 'block';
-            rowContainer.style.visibility = 'visible';
-            rowContainer.classList.add('show');
-            
-            console.log(`✅ 행 ${rowIndex} 시군구 컨테이너 표시 완료`);
-            return true;
         }
 
         // GeoJSON 데이터 로드
@@ -2057,7 +2173,7 @@
             };
         }
 
-        // 시/도 목록 로드 (행별 시군구 컨테이너 방식 - 수정)
+        // 시/도 목록 로드 (행별 시군구 컨테이너 방식)
         function loadProvinces() {
             const containerDiv = document.getElementById('administrative-container');
             containerDiv.innerHTML = '';
@@ -2165,8 +2281,9 @@
             // 4단계: 해당 행의 시군구 컨테이너 요소 확인
             const districtsHeader = document.getElementById(`row-districts-header-${rowIndex}`);
             const districtsContent = document.getElementById(`row-districts-content-${rowIndex}`);
+            const districtsContainer = document.getElementById(`row-districts-${rowIndex}`);
             
-            if (!districtsHeader || !districtsContent) {
+            if (!districtsHeader || !districtsContent || !districtsContainer) {
                 console.error(`❌ 행 ${rowIndex}의 시군구 컨테이너 요소를 찾을 수 없습니다.`);
                 return;
             }
@@ -2177,37 +2294,19 @@
             // 6단계: 기존 시군구 버튼들 제거
             districtsContent.innerHTML = '';
             
-            // 7단계: 시군구 버튼들 생성
-            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
-            if (provinceInfo && provinceInfo.districts) {
-                // '전체 (시도명)' 버튼 먼저 생성
-                const allDistrictBtn = document.createElement('button');
-                allDistrictBtn.className = 'district-btn all-district';
-                allDistrictBtn.innerHTML = `<i class="fas fa-map-marked-alt"></i> 전체 (${provinceName})`;
-                allDistrictBtn.onclick = () => selectAllDistrict(provinceName);
-                districtsContent.appendChild(allDistrictBtn);
-
-                // 나머지 시군구들 정렬하여 추가
-                const sortedDistricts = Object.keys(provinceInfo.districts)
-                    .filter(d => d !== `전체 (${provinceName})`)
-                    .sort();
-                
-                sortedDistricts.forEach(districtName => {
-                    const districtBtn = document.createElement('button');
-                    districtBtn.className = 'district-btn';
-                    districtBtn.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${districtName}`;
-                    districtBtn.setAttribute('data-district', districtName);
-                    districtBtn.onclick = () => selectDistrict(provinceName, districtName);
-                    districtsContent.appendChild(districtBtn);
-                });
-                
-                console.log(`📍 ${provinceName}의 ${sortedDistricts.length + 1}개 시군구 버튼 생성 완료`);
-            }
+            // 7단계: 시군구 버튼들을 그리드로 생성하고 개수 반환
+            const districtCount = createDistrictsGrid(provinceName, districtsContent);
             
-            // 8단계: 선택된 행의 시군구 컨테이너만 표시 (헬퍼 함수 사용)
+            // 8단계: 동적 높이 계산 및 적용
+            const dynamicHeight = calculateDistrictsContainerHeight(districtCount);
+            districtsContainer.style.minHeight = `${dynamicHeight}px`;
+            
+            console.log(`📍 ${provinceName}의 ${districtCount}개 시군구 버튼 생성 완료 (높이: ${dynamicHeight}px)`);
+            
+            // 9단계: 선택된 행의 시군구 컨테이너만 표시 (헬퍼 함수 사용)
             showDistrictsContainer(rowIndex, 'selectProvince');
 
-            // 9단계: 최종 검증
+            // 10단계: 최종 검증
             setTimeout(() => {
                 const finalCheck = document.querySelectorAll('.row-districts-container.show');
                 console.log(`🔍 최종 검증: 현재 보이는 시군구 컨테이너 수 = ${finalCheck.length}개 (예상: 1개)`);
@@ -2218,7 +2317,7 @@
                 }
             }, 100);
 
-            // 10단계: 시군구 컨테이너로 부드럽게 스크롤
+            // 11단계: 시군구 컨테이너로 부드럽게 스크롤
             setTimeout(() => {
                 const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
                 if (rowContainer) {
@@ -2235,7 +2334,7 @@
             displayAllDistrictsBoundaryForProvince(provinceName);
         }
 
-        // 시/군/구 선택 (해당 시군구로 줌인) - 헬퍼 함수 사용
+        // 시/군/구 선택 (해당 시군구로 줌인)
         function selectDistrict(provinceName, districtName) {
             console.log(`🎯 시군구 선택: ${provinceName} ${districtName}`);
             
@@ -2273,7 +2372,7 @@
             displaySigunguBoundary(provinceName, districtName);
         }
 
-        // '전체 (시도명)' 버튼 클릭 시 - 헬퍼 함수 사용
+        // '전체 (시도명)' 버튼 클릭 시
         function selectAllDistrict(provinceName) {
             console.log(`🏛️ 전체 시도 선택: ${provinceName}`);
             
@@ -2324,11 +2423,8 @@
                 btn.classList.remove('active');
             });
             
-            // 공통 시군구 컨테이너 숨김
-            const sharedContainer = document.getElementById('shared-districts-container');
-            if (sharedContainer) {
-                sharedContainer.classList.remove('show');
-            }
+            // 모든 시군구 컨테이너 숨김
+            hideAllDistrictsContainers('selectAdministrativeDivision');
 
             // '전국' 버튼 활성화
             const allKoreaBtn = document.querySelector('.all-korea-btn');
@@ -2468,11 +2564,8 @@
                 btn.classList.remove('active');
             });
             
-            // 공통 시군구 컨테이너 숨김
-            const sharedContainer = document.getElementById('shared-districts-container');
-            if (sharedContainer) {
-                sharedContainer.classList.remove('show');
-            }
+            // 모든 시군구 컨테이너 숨김
+            hideAllDistrictsContainers('showRestAreas');
             
             // 휴게소 버튼 활성화
             const restAreaBtn = document.querySelector('.category-btn[onclick="showRestAreas()"]');

@@ -1798,7 +1798,7 @@
             };
         }
 
-        // 시/도 목록 로드 (행별 시군구 컨테이너 방식)
+        // 시/도 목록 로드 (행별 시군구 컨테이너 방식 - 수정)
         function loadProvinces() {
             const containerDiv = document.getElementById('administrative-container');
             containerDiv.innerHTML = '';
@@ -1822,7 +1822,7 @@
                 const provinceRow = document.createElement('div');
                 provinceRow.className = 'provinces-row';
                 
-                // 시도 버튼들 컨테이너 생성
+                // 시도 버튼들 컨테이너 생성 (가로 배치)
                 const rowButtons = document.createElement('div');
                 rowButtons.className = 'provinces-row-buttons';
                 
@@ -1859,14 +1859,14 @@
             }
         }
 
-        // 시/도 선택 (해당 행의 시군구 영역에 시군구들 표시)
+        // 시/도 선택 (해당 행의 시군구 영역에만 시군구들 표시)
         function selectProvince(provinceName, rowIndex) {
             // 모든 버튼 비활성화
             document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // 모든 행의 시군구 컨테이너 숨김
+            // 모든 행의 시군구 컨테이너 숨김 (중요!)
             document.querySelectorAll('.row-districts-container').forEach(container => {
                 container.classList.remove('show');
             });
@@ -1880,7 +1880,7 @@
             currentSelectedProvince = provinceName;
             currentSelectedDistrict = null;
 
-            // 해당 행의 시군구 컨테이너 표시 및 내용 생성
+            // 해당 행의 시군구 컨테이너만 표시 및 내용 생성
             const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
             const districtsHeader = document.getElementById(`row-districts-header-${rowIndex}`);
             const districtsContent = document.getElementById(`row-districts-content-${rowIndex}`);
@@ -1916,7 +1916,7 @@
                 });
             }
             
-            // 해당 행의 시군구 컨테이너 표시
+            // 해당 행의 시군구 컨테이너만 표시
             rowContainer.classList.add('show');
 
             // 시군구 컨테이너로 부드럽게 스크롤

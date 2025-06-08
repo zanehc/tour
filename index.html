@@ -317,12 +317,13 @@
             box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
         }
 
-        /* 시도 행별 배치 */
+        /* 시도 행별 배치 - 항상 3개씩 그리드 */
         .provinces-row {
             margin-bottom: 8px;
             display: flex;
             flex-direction: column;
             gap: 0;
+            /* 동적 마진은 JavaScript에서 설정 */
         }
 
         .provinces-row-buttons {
@@ -332,23 +333,23 @@
             margin-bottom: 6px;
         }
 
-        /* 시도 버튼 스타일 */
+        /* 시도 버튼 스타일 - 데스크탑에서도 3개씩 고정 */
         .province-btn {
             background: white;
             border: 1px solid #e1e5e9;
-            padding: 8px 4px;
+            padding: 8px 6px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: 500;
             text-align: center;
             transition: all 0.2s;
             color: #555;
-            min-height: 36px;
+            min-height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1.1;
+            line-height: 1.2;
             word-break: keep-all;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -371,7 +372,7 @@
 
         /* 시도별 컨테이너 */
         .province-container {
-            margin-bottom: 12px; /* 기본 간격 증가 */
+            margin-bottom: 8px; /* 기본 간격 (동적으로 조정됨) */
             display: flex;
             flex-direction: column;
             gap: 0;
@@ -437,13 +438,13 @@
             margin-top: 8px;
         }
 
-        /* 전체(시도명) 버튼 - 풀 너비 */
+        /* 전체(시도명) 버튼 - 풀 너비 (개선된 버전) */
         .district-btn.all-district {
             grid-column: 1 / -1; /* 전체 너비 차지 */
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: 1px solid #667eea;
-            padding: 8px 12px;
+            padding: 9px 12px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 11px;
@@ -454,7 +455,8 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            min-height: 42px;
         }
 
         .district-btn.all-district:hover {
@@ -468,11 +470,11 @@
             box-shadow: 0 2px 6px rgba(102, 126, 234, 0.25);
         }
 
-        /* 시군구 버튼 스타일 (3개씩 그리드) */
+        /* 시군구 버튼 스타일 (3개씩 그리드 최적화) */
         .district-btn {
             background: white;
             border: 1px solid #e1e5e9;
-            padding: 6px 4px;
+            padding: 7px 4px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 9px;
@@ -483,9 +485,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            min-height: 32px;
-            line-height: 1.1;
+            gap: 3px;
+            min-height: 34px;
+            line-height: 1.2;
             word-break: keep-all;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -648,7 +650,7 @@
                 left: 15px;
             }
 
-            /* 모바일에서도 시도 가로 배치 유지 */
+            /* 모바일에서도 시도 3개씩 그리드 유지 */
             .provinces-row-buttons {
                 grid-template-columns: repeat(3, 1fr);
                 gap: 4px;
@@ -656,10 +658,9 @@
 
             .province-btn {
                 font-size: 8px;
-                padding: 6px 2px;
-                min-height: 32px;
-                line-height: 1.0;
-                flex: 1;
+                padding: 6px 3px;
+                min-height: 36px;
+                line-height: 1.1;
             }
 
             /* 모바일에서 시군구도 3개씩 그리드 유지 */
@@ -669,21 +670,23 @@
             }
 
             .district-btn.all-district {
-                font-size: 10px;
+                font-size: 9px;
                 padding: 6px 8px;
                 margin-bottom: 4px;
+                min-height: 38px;
             }
 
             .district-btn {
-                font-size: 8px;
+                font-size: 7px;
                 padding: 4px 2px;
-                min-height: 28px;
-                line-height: 1.0;
+                min-height: 30px;
+                line-height: 1.1;
+                gap: 2px;
             }
 
             .district-btn i {
-                font-size: 8px;
-                width: 10px;
+                font-size: 7px;
+                width: 8px;
             }
 
             .row-districts-header {
@@ -1168,25 +1171,55 @@
             }}
         };
         
-        // 시군구 개수에 따른 동적 높이 계산
+        // 시군구 개수에 따른 동적 높이 계산 (최종 최적화 버전)
         function calculateDistrictsContainerHeight(districtCount) {
-            const allDistrictBtnHeight = 40; // '전체' 버튼 높이 + 마진
-            const buttonHeight = 32; // 각 버튼 높이
+            const allDistrictBtnHeight = 50; // '전체' 버튼 높이 + 마진 (42px + 8px)
+            const buttonHeight = 34; // 각 시군구 버튼 높이
             const gap = 6; // 그리드 간격
             const padding = 16; // 컨테이너 패딩
-            const headerHeight = 35; // 헤더 높이
+            const headerHeight = 37; // 헤더 높이
+            const gridMarginTop = 8; // 그리드 상단 마진
             
             // 실제 시군구 버튼 개수 (전체 버튼 제외)
-            const actualDistrictCount = districtCount - 1;
+            const actualDistrictCount = Math.max(0, districtCount - 1);
             
             // 3개씩 배치했을 때 필요한 행 수
             const rows = Math.ceil(actualDistrictCount / 3);
             
+            // 그리드 높이 계산
+            const gridHeight = rows > 0 ? (rows * buttonHeight) + ((rows - 1) * gap) : 0;
+            
             // 전체 높이 계산
-            const contentHeight = allDistrictBtnHeight + (rows * buttonHeight) + ((rows - 1) * gap) + padding;
+            const contentHeight = allDistrictBtnHeight + gridMarginTop + gridHeight + padding;
             const totalHeight = headerHeight + contentHeight;
             
-            return Math.max(totalHeight, 100); // 최소 높이 보장
+            // 디버그 로그
+            console.log(`높이 계산: 총 ${districtCount}개 시군구, ${rows}행 필요, 최종 높이: ${totalHeight}px`);
+            
+            return Math.max(totalHeight, 130); // 최소 높이 보장
+        }
+
+        // 시도 줄의 동적 마진 계산 (시군구가 많은 지역일수록 더 큰 간격)
+        function calculateProvinceRowMargin(provinceName) {
+            const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            if (!provinceInfo || !provinceInfo.districts) {
+                return 8; // 기본 마진
+            }
+            
+            const districtCount = Object.keys(provinceInfo.districts).length;
+            
+            // 시군구 개수에 따른 마진 계산 (더 많은 시군구 = 더 큰 마진)
+            if (districtCount <= 5) {
+                return 8; // 기본 간격
+            } else if (districtCount <= 10) {
+                return 12;
+            } else if (districtCount <= 15) {
+                return 16;
+            } else if (districtCount <= 20) {
+                return 20;
+            } else {
+                return 24; // 최대 간격 (서울, 경기도 등)
+            }
         }
 
         // 시군구 버튼들을 그리드로 생성하는 함수
@@ -2173,7 +2206,7 @@
             };
         }
 
-        // 시/도 목록 로드 (행별 시군구 컨테이너 방식)
+        // 시/도 목록 로드 (행별 시군구 컨테이너 방식 + 동적 마진)
         function loadProvinces() {
             const containerDiv = document.getElementById('administrative-container');
             containerDiv.innerHTML = '';
@@ -2197,9 +2230,25 @@
                 
                 console.log(`행 ${rowIndex}: ${rowProvinces.join(', ')}`);
                 
+                // 이 행에서 가장 많은 시군구를 가진 시도 찾기
+                let maxDistricts = 0;
+                rowProvinces.forEach(provinceName => {
+                    const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+                    if (provinceInfo && provinceInfo.districts) {
+                        const districtCount = Object.keys(provinceInfo.districts).length;
+                        maxDistricts = Math.max(maxDistricts, districtCount);
+                    }
+                });
+                
                 // 행 컨테이너 생성
                 const provinceRow = document.createElement('div');
                 provinceRow.className = 'provinces-row';
+                
+                // 동적 마진 적용 (가장 많은 시군구를 가진 시도 기준)
+                const dynamicMargin = Math.max(8, Math.ceil(maxDistricts / 3) * 4 + 8);
+                provinceRow.style.marginBottom = `${dynamicMargin}px`;
+                
+                console.log(`행 ${rowIndex} 마진: ${dynamicMargin}px (최대 시군구: ${maxDistricts}개)`);
                 
                 // 시도 버튼들 컨테이너 생성 (가로 배치)
                 const rowButtons = document.createElement('div');
@@ -2237,7 +2286,7 @@
                 containerDiv.appendChild(provinceRow);
             }
             
-            console.log('시도 버튼 로드 완료');
+            console.log('시도 버튼 로드 완료 (동적 마진 적용)');
         }
 
         // 지도상의 모든 GeoJSON 경계 및 마커 클리어

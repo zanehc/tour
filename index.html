@@ -606,7 +606,7 @@
                     </div>
                     <div class="category-section-content" id="administrative-map-content">
                         <div id="province-list"></div>
-                    </div>
+                        <div id="district-list"></div> </div>
                 </div>
                 
                 <div class="category-section">
@@ -652,7 +652,7 @@
         let restAreaData = null;
         let previousSelectedLayer = null;
 
-        // 대한민국 시/도 및 시/군/구 데이터
+        // 대한민국 시/도 및 시/군/구 데이터 (더 많은 시군구 추가)
         const KOREA_ADMINISTRATIVE_DIVISIONS = {
             "서울특별시": { lat: 37.5665, lng: 126.9780, zoom: 11, districts: {
                 "전체 (서울특별시)": { lat: 37.5665, lng: 126.9780, zoom: 11 },
@@ -665,41 +665,88 @@
                 "강서구": { lat: 37.5509, lng: 126.8496, zoom: 13 },
                 "관악구": { lat: 37.4784, lng: 126.9517, zoom: 13 },
                 "동대문구": { lat: 37.5744, lng: 127.0396, zoom: 13 },
-                "성북구": { lat: 37.5894, lng: 127.0167, zoom: 13 }
+                "성북구": { lat: 37.5894, lng: 127.0167, zoom: 13 },
+                "중구": { lat: 37.5638, lng: 126.9976, zoom: 13 },
+                "용산구": { lat: 37.5323, lng: 126.9902, zoom: 13 },
+                "성동구": { lat: 37.5635, lng: 127.0366, zoom: 13 },
+                "광진구": { lat: 37.5385, lng: 127.0826, zoom: 13 },
+                "중랑구": { lat: 37.5976, lng: 127.0939, zoom: 13 },
+                "도봉구": { lat: 37.6688, lng: 127.0471, zoom: 13 },
+                "노원구": { lat: 37.6534, lng: 127.0569, zoom: 13 },
+                "은평구": { lat: 37.6027, lng: 126.9328, zoom: 13 },
+                "서대문구": { lat: 37.5794, lng: 126.9367, zoom: 13 },
+                "양천구": { lat: 37.5173, lng: 126.8665, zoom: 13 },
+                "구로구": { lat: 37.4954, lng: 126.8582, zoom: 13 },
+                "금천구": { lat: 37.4578, lng: 126.8955, zoom: 13 },
+                "동작구": { lat: 37.4988, lng: 126.9570, zoom: 13 },
+                "강동구": { lat: 37.5300, lng: 127.1238, zoom: 13 }
             }},
             "부산광역시": { lat: 35.1796, lng: 129.0756, zoom: 11, districts: {
                 "전체 (부산광역시)": { lat: 35.1796, lng: 129.0756, zoom: 11 },
-                "해운대구": { lat: 35.1633, lng: 129.1648, zoom: 13 },
+                "중구": { lat: 35.1054, lng: 129.0322, zoom: 13 },
+                "서구": { lat: 35.0970, lng: 129.0205, zoom: 13 },
+                "동구": { lat: 35.1325, lng: 129.0435, zoom: 13 },
+                "영도구": { lat: 35.0934, lng: 129.0715, zoom: 13 },
                 "부산진구": { lat: 35.1848, lng: 129.0573, zoom: 13 },
                 "동래구": { lat: 35.2026, lng: 129.0837, zoom: 13 },
-                "남구": { lat: 35.1368, lng: 129.0886, zoom: 13 }
+                "남구": { lat: 35.1368, lng: 129.0886, zoom: 13 },
+                "북구": { lat: 35.2120, lng: 129.0069, zoom: 13 },
+                "해운대구": { lat: 35.1633, lng: 129.1648, zoom: 13 },
+                "사하구": { lat: 35.0937, lng: 128.9897, zoom: 13 },
+                "금정구": { lat: 35.2505, lng: 129.0911, zoom: 13 },
+                "강서구": { lat: 35.1852, lng: 128.9567, zoom: 13 },
+                "연제구": { lat: 35.1772, lng: 129.0792, zoom: 13 },
+                "수영구": { lat: 35.1524, lng: 129.1171, zoom: 13 },
+                "사상구": { lat: 35.1522, lng: 128.9877, zoom: 13 },
+                "기장군": { lat: 35.2447, lng: 129.2312, zoom: 12 }
             }},
             "대구광역시": { lat: 35.8714, lng: 128.6014, zoom: 11, districts: {
                 "전체 (대구광역시)": { lat: 35.8714, lng: 128.6014, zoom: 11 },
                 "중구": { lat: 35.8681, lng: 128.5943, zoom: 13 },
+                "동구": { lat: 35.8757, lng: 128.6917, zoom: 13 },
+                "서구": { lat: 35.8601, lng: 128.5583, zoom: 13 },
+                "남구": { lat: 35.8471, lng: 128.5901, zoom: 13 },
+                "북구": { lat: 35.8885, lng: 128.5833, zoom: 13 },
                 "수성구": { lat: 35.8457, lng: 128.6277, zoom: 13 },
-                "달서구": { lat: 35.8519, lng: 128.5303, zoom: 13 }
+                "달서구": { lat: 35.8519, lng: 128.5303, zoom: 13 },
+                "달성군": { lat: 35.7951, lng: 128.4619, zoom: 12 }
             }},
             "인천광역시": { lat: 37.4563, lng: 126.7052, zoom: 11, districts: {
                 "전체 (인천광역시)": { lat: 37.4563, lng: 126.7052, zoom: 11 },
+                "중구": { lat: 37.4727, lng: 126.6200, zoom: 13 },
+                "동구": { lat: 37.4770, lng: 126.6370, zoom: 13 },
+                "미추홀구": { lat: 37.4600, lng: 126.6570, zoom: 13 },
                 "연수구": { lat: 37.3995, lng: 126.6601, zoom: 13 },
                 "남동구": { lat: 37.4093, lng: 126.7328, zoom: 13 },
-                "부평구": { lat: 37.5085, lng: 126.7229, zoom: 13 }
+                "부평구": { lat: 37.5085, lng: 126.7229, zoom: 13 },
+                "계양구": { lat: 37.5450, lng: 126.7380, zoom: 13 },
+                "서구": { lat: 37.5400, lng: 126.6670, zoom: 13 },
+                "강화군": { lat: 37.7476, lng: 126.4172, zoom: 12 },
+                "옹진군": { lat: 37.6047, lng: 125.8456, zoom: 10 } // 섬 지역이라 줌 레벨 조정
             }},
             "광주광역시": { lat: 35.1595, lng: 126.8526, zoom: 11, districts: {
                 "전체 (광주광역시)": { lat: 35.1595, lng: 126.8526, zoom: 11 },
+                "동구": { lat: 35.1450, lng: 126.9200, zoom: 13 },
                 "서구": { lat: 35.1500, lng: 126.8569, zoom: 13 },
-                "북구": { lat: 35.1824, lng: 126.9079, zoom: 13 }
+                "남구": { lat: 35.1200, lng: 126.9000, zoom: 13 },
+                "북구": { lat: 35.1824, lng: 126.9079, zoom: 13 },
+                "광산구": { lat: 35.1500, lng: 126.7900, zoom: 13 }
             }},
             "대전광역시": { lat: 36.3504, lng: 127.3845, zoom: 11, districts: {
                 "전체 (대전광역시)": { lat: 36.3504, lng: 127.3845, zoom: 11 },
+                "동구": { lat: 36.3380, lng: 127.4330, zoom: 13 },
+                "중구": { lat: 36.3260, lng: 127.4200, zoom: 13 },
+                "서구": { lat: 36.3510, lng: 127.3870, zoom: 13 },
                 "유성구": { lat: 36.3700, lng: 127.3500, zoom: 13 },
-                "서구": { lat: 36.3510, lng: 127.3870, zoom: 13 }
+                "대덕구": { lat: 36.3900, lng: 127.4200, zoom: 13 }
             }},
             "울산광역시": { lat: 35.5384, lng: 129.3114, zoom: 11, districts: {
                 "전체 (울산광역시)": { lat: 35.5384, lng: 129.3114, zoom: 11 },
+                "중구": { lat: 35.5600, lng: 129.3370, zoom: 13 },
                 "남구": { lat: 35.5390, lng: 129.3300, zoom: 13 },
-                "중구": { lat: 35.5600, lng: 129.3370, zoom: 13 }
+                "동구": { lat: 35.4950, lng: 129.4100, zoom: 13 },
+                "북구": { lat: 35.6000, lng: 129.3500, zoom: 13 },
+                "울주군": { lat: 35.5600, lng: 129.2100, zoom: 12 }
             }},
             "세종특별자치시": { lat: 36.4800, lng: 127.2890, zoom: 11, districts: {
                 "전체 (세종특별자치시)": { lat: 36.4800, lng: 127.2890, zoom: 11 }
@@ -711,49 +758,172 @@
                 "용인시": { lat: 37.2410, lng: 127.1770, zoom: 12 },
                 "성남시": { lat: 37.4190, lng: 127.1268, zoom: 12 },
                 "화성시": { lat: 37.2000, lng: 126.8333, zoom: 12 },
-                "안산시": { lat: 37.3175, lng: 126.8309, zoom: 12 }
+                "안산시": { lat: 37.3175, lng: 126.8309, zoom: 12 },
+                "부천시": { lat: 37.5030, lng: 126.7661, zoom: 12 },
+                "남양주시": { lat: 37.6360, lng: 127.2180, zoom: 11 },
+                "안양시": { lat: 37.3943, lng: 126.9568, zoom: 12 },
+                "평택시": { lat: 36.9928, lng: 127.1082, zoom: 11 },
+                "시흥시": { lat: 37.3800, lng: 126.8000, zoom: 12 },
+                "파주시": { lat: 37.7600, lng: 126.7700, zoom: 11 },
+                "의정부시": { lat: 37.7370, lng: 127.0490, zoom: 12 },
+                "김포시": { lat: 37.6200, lng: 126.7100, zoom: 12 },
+                "광주시": { lat: 37.4100, lng: 127.2600, zoom: 12 },
+                "하남시": { lat: 37.5300, lng: 127.2700, zoom: 12 },
+                "오산시": { lat: 37.1400, lng: 127.0700, zoom: 13 },
+                "이천시": { lat: 37.2800, lng: 127.4400, zoom: 12 },
+                "안성시": { lat: 37.0000, lng: 127.2700, zoom: 11 },
+                "구리시": { lat: 37.5900, lng: 127.1400, zoom: 13 },
+                "군포시": { lat: 37.3500, lng: 126.9400, zoom: 13 },
+                "의왕시": { lat: 37.3400, lng: 127.0000, zoom: 13 },
+                "양주시": { lat: 37.7800, lng: 127.0500, zoom: 12 },
+                "포천시": { lat: 37.8900, lng: 127.2000, zoom: 11 },
+                "동두천시": { lat: 37.9100, lng: 127.0600, zoom: 12 },
+                "가평군": { lat: 37.8300, lng: 127.5100, zoom: 11 },
+                "양평군": { lat: 37.4900, lng: 127.4900, zoom: 11 },
+                "여주시": { lat: 37.3000, lng: 127.6300, zoom: 12 },
+                "연천군": { lat: 38.0800, lng: 127.0700, zoom: 11 }
             }},
             "강원특별자치도": { lat: 37.8283, lng: 128.2815, zoom: 9, districts: {
                 "전체 (강원특별자치도)": { lat: 37.8283, lng: 128.2815, zoom: 9 },
                 "춘천시": { lat: 37.8813, lng: 127.7298, zoom: 12 },
                 "강릉시": { lat: 37.7519, lng: 128.8761, zoom: 12 },
-                "속초시": { lat: 38.2000, lng: 128.5917, zoom: 12 }
+                "속초시": { lat: 38.2000, lng: 128.5917, zoom: 12 },
+                "원주시": { lat: 37.3444, lng: 127.9200, zoom: 12 },
+                "동해시": { lat: 37.5250, lng: 129.1170, zoom: 12 },
+                "태백시": { lat: 37.1650, lng: 128.9870, zoom: 12 },
+                "삼척시": { lat: 37.4470, lng: 129.1670, zoom: 12 },
+                "홍천군": { lat: 37.6970, lng: 127.8800, zoom: 11 },
+                "횡성군": { lat: 37.4970, lng: 127.9890, zoom: 12 },
+                "영월군": { lat: 37.1850, lng: 128.4680, zoom: 11 },
+                "평창군": { lat: 37.3700, lng: 128.3900, zoom: 11 },
+                "정선군": { lat: 37.3870, lng: 128.6630, zoom: 11 },
+                "철원군": { lat: 38.1400, lng: 127.3100, zoom: 11 },
+                "화천군": { lat: 38.1000, lng: 127.4600, zoom: 11 },
+                "양구군": { lat: 38.1000, lng: 127.5500, zoom: 12 },
+                "인제군": { lat: 38.0600, lng: 128.1700, zoom: 11 },
+                "고성군": { lat: 38.3700, lng: 128.4600, zoom: 11 },
+                "양양군": { lat: 38.0700, lng: 128.6200, zoom: 12 }
             }},
             "충청북도": { lat: 36.6361, lng: 127.8100, zoom: 9, districts: {
                 "전체 (충청북도)": { lat: 36.6361, lng: 127.8100, zoom: 9 },
                 "청주시": { lat: 36.6433, lng: 127.4913, zoom: 12 },
                 "충주시": { lat: 36.9912, lng: 127.9250, zoom: 12 },
-                "제천시": { lat: 37.1326, lng: 128.1910, zoom: 12 }
+                "제천시": { lat: 37.1326, lng: 128.1910, zoom: 12 },
+                "보은군": { lat: 36.4800, lng: 127.7200, zoom: 12 },
+                "옥천군": { lat: 36.3000, lng: 127.5800, zoom: 12 },
+                "영동군": { lat: 36.1700, lng: 127.7800, zoom: 12 },
+                "증평군": { lat: 36.7800, lng: 127.5800, zoom: 13 },
+                "진천군": { lat: 36.8500, lng: 127.4300, zoom: 12 },
+                "괴산군": { lat: 36.8100, lng: 127.8000, zoom: 11 },
+                "음성군": { lat: 36.9400, lng: 127.6900, zoom: 12 },
+                "단양군": { lat: 36.9800, lng: 128.3700, zoom: 11 }
             }},
             "충청남도": { lat: 36.5184, lng: 126.8000, zoom: 9, districts: {
                 "전체 (충청남도)": { lat: 36.5184, lng: 126.8000, zoom: 9 },
                 "천안시": { lat: 36.8140, lng: 127.1139, zoom: 12 },
+                "공주시": { lat: 36.4500, lng: 127.1200, zoom: 12 },
+                "보령시": { lat: 36.3300, lng: 126.6100, zoom: 11 },
                 "아산시": { lat: 36.7871, lng: 127.0020, zoom: 12 },
-                "당진시": { lat: 36.8900, lng: 126.6300, zoom: 12 }
+                "서산시": { lat: 36.7800, lng: 126.4400, zoom: 12 },
+                "논산시": { lat: 36.1900, lng: 127.1000, zoom: 12 },
+                "계룡시": { lat: 36.2500, lng: 127.2400, zoom: 13 },
+                "당진시": { lat: 36.8900, lng: 126.6300, zoom: 12 },
+                "금산군": { lat: 36.1000, lng: 127.4900, zoom: 12 },
+                "부여군": { lat: 36.2700, lng: 126.9200, zoom: 12 },
+                "서천군": { lat: 36.0800, lng: 126.6900, zoom: 12 },
+                "청양군": { lat: 36.3900, lng: 126.8000, zoom: 12 },
+                "홍성군": { lat: 36.6000, lng: 126.6600, zoom: 12 },
+                "예산군": { lat: 36.6700, lng: 126.8400, zoom: 12 },
+                "태안군": { lat: 36.7500, lng: 126.3000, zoom: 11 }
             }},
             "전라북도": { lat: 35.7175, lng: 127.1530, zoom: 9, districts: {
                 "전체 (전라북도)": { lat: 35.7175, lng: 127.1530, zoom: 9 },
                 "전주시": { lat: 35.8200, lng: 127.1087, zoom: 12 },
                 "군산시": { lat: 35.9904, lng: 126.7000, zoom: 12 },
-                "익산시": { lat: 35.9400, lng: 126.9500, zoom: 12 }
+                "익산시": { lat: 35.9400, lng: 126.9500, zoom: 12 },
+                "정읍시": { lat: 35.5600, lng: 126.8500, zoom: 12 },
+                "남원시": { lat: 35.4100, lng: 127.3900, zoom: 12 },
+                "김제시": { lat: 35.8000, lng: 126.8900, zoom: 12 },
+                "완주군": { lat: 35.8800, lng: 127.2000, zoom: 11 },
+                "진안군": { lat: 35.7800, lng: 127.5500, zoom: 12 },
+                "무주군": { lat: 36.0000, lng: 127.7000, zoom: 12 },
+                "장수군": { lat: 35.6500, lng: 127.5300, zoom: 12 },
+                "임실군": { lat: 35.6300, lng: 127.2700, zoom: 12 },
+                "순창군": { lat: 35.3700, lng: 127.1300, zoom: 12 },
+                "고창군": { lat: 35.4300, lng: 126.6900, zoom: 12 },
+                "부안군": { lat: 35.7200, lng: 126.7300, zoom: 12 }
             }},
             "전라남도": { lat: 34.8679, lng: 126.9910, zoom: 9, districts: {
                 "전체 (전라남도)": { lat: 34.8679, lng: 126.9910, zoom: 9 },
+                "목포시": { lat: 34.7891, lng: 126.3980, zoom: 12 },
                 "여수시": { lat: 34.7600, lng: 127.6600, zoom: 12 },
                 "순천시": { lat: 34.9450, lng: 127.5020, zoom: 12 },
-                "목포시": { lat: 34.7891, lng: 126.3980, zoom: 12 }
+                "나주시": { lat: 34.9800, lng: 126.7100, zoom: 12 },
+                "광양시": { lat: 34.9400, lng: 127.6900, zoom: 12 },
+                "담양군": { lat: 35.3100, lng: 126.9800, zoom: 12 },
+                "곡성군": { lat: 35.2800, lng: 127.2900, zoom: 12 },
+                "구례군": { lat: 35.2000, lng: 127.4600, zoom: 12 },
+                "고흥군": { lat: 34.6000, lng: 127.2800, zoom: 11 },
+                "보성군": { lat: 34.7700, lng: 127.0800, zoom: 12 },
+                "화순군": { lat: 35.0900, lng: 126.9700, zoom: 12 },
+                "장흥군": { lat: 34.6800, lng: 126.8900, zoom: 12 },
+                "강진군": { lat: 34.5900, lng: 126.7600, zoom: 12 },
+                "해남군": { lat: 34.5700, lng: 126.5800, zoom: 11 },
+                "영암군": { lat: 34.7800, lng: 126.6800, zoom: 12 },
+                "무안군": { lat: 34.9900, lng: 126.4700, zoom: 12 },
+                "함평군": { lat: 35.0700, lng: 126.5200, zoom: 12 },
+                "영광군": { lat: 35.2700, lng: 126.5000, zoom: 12 },
+                "장성군": { lat: 35.3000, lng: 126.7900, zoom: 12 },
+                "완도군": { lat: 34.3100, lng: 126.7600, zoom: 11 },
+                "진도군": { lat: 34.4800, lng: 126.2700, zoom: 11 },
+                "신안군": { lat: 34.8000, lng: 126.0800, zoom: 10 } // 섬 지역이라 줌 레벨 조정
             }},
             "경상북도": { lat: 36.5760, lng: 128.5050, zoom: 8, districts: {
                 "전체 (경상북도)": { lat: 36.5760, lng: 128.5050, zoom: 8 },
                 "포항시": { lat: 36.0312, lng: 129.3519, zoom: 12 },
                 "경주시": { lat: 35.8562, lng: 129.2247, zoom: 12 },
-                "구미시": { lat: 36.1100, lng: 128.3300, zoom: 12 }
+                "김천시": { lat: 36.1100, lng: 128.1100, zoom: 12 },
+                "안동시": { lat: 36.5700, lng: 128.7200, zoom: 12 },
+                "구미시": { lat: 36.1100, lng: 128.3300, zoom: 12 },
+                "영주시": { lat: 36.8100, lng: 128.6200, zoom: 12 },
+                "영천시": { lat: 35.9700, lng: 128.9400, zoom: 12 },
+                "상주시": { lat: 36.4100, lng: 128.1600, zoom: 12 },
+                "문경시": { lat: 36.6000, lng: 128.2100, zoom: 12 },
+                "경산시": { lat: 35.8200, lng: 128.7300, zoom: 12 },
+                "군위군": { lat: 36.2400, lng: 128.5600, zoom: 12 },
+                "의성군": { lat: 36.3600, lng: 128.6900, zoom: 11 },
+                "청송군": { lat: 36.4300, lng: 129.0500, zoom: 11 },
+                "영양군": { lat: 36.6600, lng: 129.2000, zoom: 11 },
+                "영덕군": { lat: 36.3800, lng: 129.3500, zoom: 11 },
+                "청도군": { lat: 35.6300, lng: 128.7300, zoom: 12 },
+                "고령군": { lat: 35.7300, lng: 128.2800, zoom: 12 },
+                "성주군": { lat: 35.9100, lng: 128.2800, zoom: 12 },
+                "칠곡군": { lat: 36.0000, lng: 128.4000, zoom: 12 },
+                "예천군": { lat: 36.6500, lng: 128.4500, zoom: 12 },
+                "봉화군": { lat: 36.9000, lng: 128.9200, zoom: 11 },
+                "울진군": { lat: 36.9900, lng: 129.4100, zoom: 11 },
+                "울릉군": { lat: 37.4800, lng: 130.8600, zoom: 10 } // 섬 지역이라 줌 레벨 조정
             }},
             "경상남도": { lat: 35.2598, lng: 128.6647, zoom: 9, districts: {
                 "전체 (경상남도)": { lat: 35.2598, lng: 128.6647, zoom: 9 },
                 "창원시": { lat: 35.2384, lng: 128.6925, zoom: 12 },
+                "진주시": { lat: 35.1920, lng: 128.0964, zoom: 12 },
+                "통영시": { lat: 34.8500, lng: 128.4200, zoom: 12 },
+                "사천시": { lat: 34.9200, lng: 128.0400, zoom: 12 },
                 "김해시": { lat: 35.2280, lng: 128.8820, zoom: 12 },
-                "진주시": { lat: 35.1920, lng: 128.0964, zoom: 12 }
+                "밀양시": { lat: 35.4900, lng: 128.7400, zoom: 12 },
+                "거제시": { lat: 34.8800, lng: 128.6200, zoom: 11 },
+                "양산시": { lat: 35.3300, lng: 129.0200, zoom: 12 },
+                "의령군": { lat: 35.3400, lng: 128.2700, zoom: 12 },
+                "함안군": { lat: 35.2800, lng: 128.4200, zoom: 12 },
+                "창녕군": { lat: 35.5400, lng: 128.5000, zoom: 12 },
+                "고성군": { lat: 34.9800, lng: 128.3200, zoom: 12 },
+                "남해군": { lat: 34.8200, lng: 127.9200, zoom: 12 },
+                "하동군": { lat: 35.0600, lng: 127.7500, zoom: 11 },
+                "산청군": { lat: 35.4200, lng: 127.8700, zoom: 12 },
+                "함양군": { lat: 35.5200, lng: 127.7200, zoom: 12 },
+                "거창군": { lat: 35.6800, lng: 127.9300, zoom: 12 },
+                "합천군": { lat: 35.5800, lng: 128.1700, zoom: 11 }
             }},
             "제주특별자치도": { lat: 33.4890, lng: 126.5219, zoom: 10, districts: {
                 "전체 (제주특별자치도)": { lat: 33.4890, lng: 126.5219, zoom: 10 },
@@ -1477,12 +1647,14 @@
 
         // 시/도 선택 (줌인 없이 시군구 버튼만 생성)
         function selectProvince(provinceName) {
-            // 이전에 선택된 시도의 시군구 버튼들 제거
-            removeAllDistrictButtons();
-            
+            // 이전에 선택된 시도의 시군구 버튼들 비활성화 및 제거
             document.querySelectorAll('#province-list .administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
+            document.querySelectorAll('#district-list .administrative-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
             const selectedProvinceBtn = document.querySelector(`#province-list [data-province="${provinceName}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
@@ -1491,64 +1663,54 @@
             currentSelectedProvince = provinceName;
             currentSelectedDistrict = null;
 
-            // 시도 선택 시에는 줌인하지 않고 시군구 버튼만 생성
             updateCurrentCategoryDisplay(`선택된 시도: ${provinceName} (시군구를 선택해주세요)`);
             displayDistricts(provinceName);
             
-            // 기존 경계는 유지하되 시도의 경계만 표시
             clearMapAndBoundaries();
             displayAllDistrictsBoundaryForProvince(provinceName);
         }
 
         // 모든 시군구 버튼 제거
         function removeAllDistrictButtons() {
-            const existingDistrictBtns = document.querySelectorAll('.district-btn');
-            existingDistrictBtns.forEach(btn => btn.remove());
+            const districtListDiv = document.getElementById('district-list');
+            districtListDiv.innerHTML = ''; // 시군구 버튼들을 모두 제거
         }
 
         // 시/군/구 목록 표시 (선택된 시도 바로 밑에)
         function displayDistricts(provinceName) {
-            // 기존 시군구 버튼들 제거
-            removeAllDistrictButtons();
+            removeAllDistrictButtons(); // 기존 시군구 버튼들 제거
             
+            const districtListDiv = document.getElementById('district-list');
             const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+            
             if (provinceInfo && provinceInfo.districts) {
-                const selectedProvinceBtn = document.querySelector(`#province-list [data-province="${provinceName}"]`);
-                if (!selectedProvinceBtn) return;
-                
                 // '전체 (시도명)' 버튼 생성
                 const allDistrictBtn = document.createElement('button');
                 allDistrictBtn.className = 'administrative-btn district-btn';
                 allDistrictBtn.textContent = `전체 (${provinceName})`;
                 allDistrictBtn.onclick = () => selectAllDistrict(provinceName);
-                
-                // 선택된 시도 버튼 바로 다음에 삽입
-                selectedProvinceBtn.parentNode.insertBefore(allDistrictBtn, selectedProvinceBtn.nextSibling);
+                districtListDiv.appendChild(allDistrictBtn);
 
                 // 시/군/구 데이터를 정렬하여 표시
                 const sortedDistricts = Object.keys(provinceInfo.districts).filter(d => d !== `전체 (${provinceName})`).sort();
                 
-                let lastInsertedBtn = allDistrictBtn;
                 sortedDistricts.forEach(districtName => {
                     const button = document.createElement('button');
                     button.className = 'administrative-btn district-btn';
                     button.textContent = districtName;
                     button.setAttribute('data-district', districtName);
                     button.onclick = () => selectDistrict(provinceName, districtName);
-                    
-                    // 이전에 삽입된 버튼 다음에 삽입
-                    lastInsertedBtn.parentNode.insertBefore(button, lastInsertedBtn.nextSibling);
-                    lastInsertedBtn = button;
+                    districtListDiv.appendChild(button);
                 });
             }
         }
 
         // 시/군/구 선택 (해당 시군구로 줌인)
         function selectDistrict(provinceName, districtName) {
-            document.querySelectorAll('.district-btn').forEach(btn => {
+            document.querySelectorAll('#district-list .administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            const selectedDistrictBtn = document.querySelector(`[data-district="${districtName}"]`);
+            const selectedDistrictBtn = document.querySelector(`#district-list [data-district="${districtName}"]`);
             if (selectedDistrictBtn) {
                 selectedDistrictBtn.classList.add('active');
             }
@@ -1595,17 +1757,19 @@
 
         // 전국 선택
         function selectAdministrativeDivision(region) {
-            // 시군구 버튼들 제거
-            removeAllDistrictButtons();
-            
+            // 모든 시도/시군구 버튼 비활성화
             document.querySelectorAll('.administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
 
+            // '전국' 버튼 활성화
             const allKoreaBtn = document.querySelector('#province-list .administrative-btn');
             if (allKoreaBtn && allKoreaBtn.textContent === '전국') {
                 allKoreaBtn.classList.add('active');
             }
+            
+            // 시군구 버튼들 제거
+            removeAllDistrictButtons();
 
             currentSelectedProvince = null;
             currentSelectedDistrict = null;
@@ -1685,6 +1849,12 @@
                         layer.bindPopup(popupContent);
                     }
                 }).addTo(geojsonLayer);
+
+                // 해당 시도 전체 경계로 줌 맞추기
+                const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+                if (provinceInfo) {
+                    map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
+                }
             } else {
                 console.warn(`${provinceName}에 대한 시군구 경계 데이터를 찾을 수 없습니다.`);
             }
@@ -1729,7 +1899,7 @@
             }
 
             // 모든 버튼 비활성화 후 휴게소 버튼 활성화
-            document.querySelectorAll('.administrative-btn, .category-btn').forEach(btn => {
+            document.querySelectorAll('.administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             

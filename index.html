@@ -274,8 +274,98 @@
             text-align: center;
         }
         
-        .category-section-content .category-btn:last-child {
-            margin-bottom: 0;
+        /* 테마 토글 컨테이너 */
+        .theme-toggles-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .theme-toggles-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+        }
+
+        /* 테마 토글 버튼 스타일 */
+        .theme-toggle {
+            background: linear-gradient(145deg, #f0f0f0, #ffffff);
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 12px 8px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.1), -1px -1px 2px rgba(255,255,255,0.8);
+            min-height: 70px;
+            text-align: center;
+        }
+
+        .theme-toggle i {
+            font-size: 20px;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle span {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s ease;
+            line-height: 1.1;
+            word-break: keep-all;
+        }
+
+        /* 비활성화 상태 (볼록한 느낌) */
+        .theme-toggle:hover {
+            transform: translateY(-1px);
+            box-shadow: 3px 3px 6px rgba(0,0,0,0.15), -2px -2px 3px rgba(255,255,255,0.9);
+        }
+
+        /* 활성화 상태 (오목한 느낌) */
+        .theme-toggle.active {
+            background: linear-gradient(145deg, #667eea, #764ba2);
+            border-color: #667eea;
+            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.2), inset -1px -1px 2px rgba(255,255,255,0.1);
+            transform: translateY(1px);
+        }
+
+        .theme-toggle.active i {
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .theme-toggle.active span {
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .theme-toggle.active:hover {
+            background: linear-gradient(145deg, #5a6fd8, #6a4190);
+            transform: translateY(1px);
+            box-shadow: inset 3px 3px 6px rgba(0,0,0,0.25), inset -2px -2px 3px rgba(255,255,255,0.1);
+        }
+
+        /* 비활성화된 버튼 (더보기 등) */
+        .theme-toggle.disabled {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border-color: #dee2e6;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .theme-toggle.disabled i,
+        .theme-toggle.disabled span {
+            color: #999;
+        }
+
+        .theme-toggle.disabled:hover {
+            transform: none;
+            box-shadow: 2px 2px 4px rgba(0,0,0,0.1), -1px -1px 2px rgba(255,255,255,0.8);
         }
 
         /* 행정구역 컨테이너 */
@@ -317,39 +407,38 @@
             box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
         }
 
-        /* 시도 행별 배치 - 항상 3개씩 그리드 */
+        /* 시도 행별 배치 - 모바일 최적화 */
         .provinces-row {
-            margin-bottom: 3px; /* 기본 간격 (동적으로 조정됨) */
+            margin-bottom: 1px; /* 모바일 최적화: 더 좁은 간격 */
             display: flex;
             flex-direction: column;
             gap: 0;
-            /* 동적 마진은 JavaScript에서 설정 */
         }
 
         .provinces-row-buttons {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
-            margin-bottom: 6px;
+            gap: 4px;
+            margin-bottom: 3px; /* 시도 버튼과 시군구 사이 간격 */
         }
 
-        /* 시도 버튼 스타일 - 데스크탑에서도 3개씩 고정 */
+        /* 시도 버튼 스타일 - 모바일 최적화 */
         .province-btn {
             background: white;
             border: 1px solid #e1e5e9;
-            padding: 8px 6px;
-            border-radius: 6px;
+            padding: 6px 4px; /* 패딩 줄임 */
+            border-radius: 4px; /* 라운드 줄임 */
             cursor: pointer;
-            font-size: 10px;
+            font-size: 9px; /* 폰트 크기 줄임 */
             font-weight: 500;
             text-align: center;
             transition: all 0.2s;
             color: #555;
-            min-height: 40px;
+            min-height: 32px; /* 높이 줄임 */
             display: flex;
             align-items: center;
             justify-content: center;
-            line-height: 1.2;
+            line-height: 1.1;
             word-break: keep-all;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -372,7 +461,7 @@
 
         /* 시도별 컨테이너 */
         .province-container {
-            margin-bottom: 3px; /* 기본 간격 (동적으로 조정됨) */
+            margin-bottom: 1px; /* 기본 간격 (동적으로 조정됨) */
             display: flex;
             flex-direction: column;
             gap: 0;
@@ -609,7 +698,7 @@
             transform: none;
         }
         
-        /* 반응형 디자인 */
+        /* 반응형 디자인 - 모바일 최적화 */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
@@ -640,66 +729,78 @@
                 font-size: 1.2rem;
             }
             
-            .category-btn {
-                padding: 12px 16px;
-                font-size: 13px;
-            }
-            
             .menu-toggle {
                 top: 70px;
                 left: 15px;
             }
 
-            /* 모바일에서도 시도 3개씩 그리드 유지 */
+            /* 모바일에서 시도 간격 더 최적화 */
             .provinces-row-buttons {
                 grid-template-columns: repeat(3, 1fr);
-                gap: 4px;
+                gap: 3px;
+                margin-bottom: 2px;
             }
 
             .province-btn {
                 font-size: 8px;
-                padding: 6px 3px;
-                min-height: 36px;
-                line-height: 1.1;
+                padding: 4px 2px;
+                min-height: 28px;
+                line-height: 1.0;
             }
 
-            /* 모바일에서 시군구도 3개씩 그리드 유지 */
+            /* 모바일에서 시군구 그리드 최적화 */
             .districts-grid {
                 grid-template-columns: repeat(3, 1fr);
-                gap: 4px;
+                gap: 3px;
             }
 
             .district-btn.all-district {
                 font-size: 9px;
-                padding: 6px 8px;
-                margin-bottom: 4px;
-                min-height: 38px;
+                padding: 5px 6px;
+                margin-bottom: 3px;
+                min-height: 32px;
             }
 
             .district-btn {
                 font-size: 7px;
-                padding: 4px 2px;
-                min-height: 30px;
-                line-height: 1.1;
+                padding: 3px 2px;
+                min-height: 26px;
+                line-height: 1.0;
                 gap: 2px;
             }
 
             .district-btn i {
-                font-size: 7px;
+                font-size: 6px;
                 width: 8px;
             }
 
             .row-districts-header {
-                font-size: 10px;
-                padding: 6px 10px;
+                font-size: 9px;
+                padding: 5px 8px;
             }
 
             .row-districts-content {
-                padding: 6px;
+                padding: 5px;
+            }
+
+            /* 모바일에서 테마 토글 최적화 */
+            .theme-toggle {
+                padding: 8px 4px;
+                min-height: 60px;
+                gap: 4px;
+            }
+
+            .theme-toggle i {
+                font-size: 16px;
+            }
+
+            .theme-toggle span {
+                font-size: 9px;
             }
 
             .category-section-content {
-                max-height: 65vh;
+                max-height: 60vh;
+                padding: 10px;
             }
         }
         
@@ -849,17 +950,54 @@
                 </div>
                 
                 <div class="category-section">
-                    <div class="category-section-title" onclick="toggleCategorySection('rest-areas')">
+                    <div class="category-section-title" onclick="toggleCategorySection('theme-maps')">
                         <div class="category-section-title-left">
-                            <i class="fas fa-gas-pump"></i>
-                            고속도로 휴게소
+                            <i class="fas fa-layer-group"></i>
+                            테마 지도
                         </div>
-                        <i class="fas fa-chevron-down category-section-toggle" id="rest-areas-toggle"></i>
+                        <i class="fas fa-chevron-down category-section-toggle" id="theme-maps-toggle"></i>
                     </div>
-                    <div class="category-section-content" id="rest-areas-content">
-                        <button class="category-btn" onclick="showRestAreas()">
-                            <i class="fas fa-coffee"></i> 전국 휴게소 보기
-                        </button>
+                    <div class="category-section-content" id="theme-maps-content">
+                        <div class="theme-toggles-container">
+                            <!-- 첫 번째 행 -->
+                            <div class="theme-toggles-row">
+                                <div class="theme-toggle active" id="theme-restarea" onclick="toggleTheme('restarea')">
+                                    <i class="fas fa-coffee"></i>
+                                    <span>휴게소</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-restaurant" onclick="toggleTheme('restaurant')">
+                                    <i class="fas fa-utensils"></i>
+                                    <span>맛집</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-hotel" onclick="toggleTheme('hotel')">
+                                    <i class="fas fa-bed"></i>
+                                    <span>숙박</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-academy" onclick="toggleTheme('academy')">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <span>학원</span>
+                                </div>
+                            </div>
+                            <!-- 두 번째 행 -->
+                            <div class="theme-toggles-row">
+                                <div class="theme-toggle" id="theme-festival" onclick="toggleTheme('festival')">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>축제</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-hotplace" onclick="toggleTheme('hotplace')">
+                                    <i class="fas fa-fire"></i>
+                                    <span>핫플</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-kids" onclick="toggleTheme('kids')">
+                                    <i class="fas fa-child"></i>
+                                    <span>어린이</span>
+                                </div>
+                                <div class="theme-toggle disabled" id="theme-coming" onclick="showComingSoon()">
+                                    <i class="fas fa-plus"></i>
+                                    <span>더보기</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2221,8 +2359,8 @@
                 provinceRow.className = 'provinces-row';
                 provinceRow.id = `province-row-${rowIndex}`;
                 
-                // 초기에는 기본 마진 적용 (3px)
-                provinceRow.style.marginBottom = '3px';
+                // 초기에는 기본 마진 적용 (1px)
+                provinceRow.style.marginBottom = '1px';
                 
                 // 시도 버튼들 컨테이너 생성 (가로 배치)
                 const rowButtons = document.createElement('div');
@@ -2260,23 +2398,130 @@
                 containerDiv.appendChild(provinceRow);
             }
             
-            console.log('시도 버튼 로드 완료 (3px 기본 마진 적용)');
+            console.log('시도 버튼 로드 완료 (1px 기본 마진 적용)');
         }
 
-        // 모든 시도 행의 마진을 기본값으로 리셋 (3px)
+        // 모든 시도 행의 마진을 기본값으로 리셋 (1px)
         function resetAllProvinceRowMargins() {
             document.querySelectorAll('.provinces-row').forEach(row => {
-                row.style.marginBottom = '3px';
+                row.style.marginBottom = '1px';
             });
         }
 
-        // 특정 행의 마진을 시군구 활성화 시 2px로 조정
+        // 특정 행의 마진을 시군구 활성화 시 1px로 조정
         function updateProvinceRowMargin(rowIndex, districtCount) {
             const provinceRow = document.getElementById(`province-row-${rowIndex}`);
             if (provinceRow) {
-                // 시군구가 활성화된 경우 간격을 2px로 설정
-                provinceRow.style.marginBottom = '2px';
-                console.log(`행 ${rowIndex} 마진 업데이트: 2px (시군구 활성화, ${districtCount}개)`);
+                // 시군구가 활성화된 경우 간격을 1px로 설정
+                provinceRow.style.marginBottom = '1px';
+                console.log(`행 ${rowIndex} 마진 업데이트: 1px (시군구 활성화, ${districtCount}개)`);
+            }
+        }
+
+        // 테마 지도 상태 관리
+        const themeStates = {
+            restarea: true, // 초기에 휴게소만 활성화
+            restaurant: false,
+            hotel: false,
+            academy: false,
+            festival: false,
+            hotplace: false,
+            kids: false
+        };
+
+        // 테마 토글 함수
+        function toggleTheme(themeType) {
+            console.log(`🎨 테마 토글: ${themeType}`);
+            
+            // 상태 토글
+            themeStates[themeType] = !themeStates[themeType];
+            
+            // UI 업데이트
+            const toggleElement = document.getElementById(`theme-${themeType}`);
+            if (themeStates[themeType]) {
+                toggleElement.classList.add('active');
+            } else {
+                toggleElement.classList.remove('active');
+            }
+            
+            // 테마별 지도 표시/숨김
+            switch(themeType) {
+                case 'restarea':
+                    if (themeStates[themeType]) {
+                        showRestAreas();
+                    } else {
+                        hideRestAreas();
+                    }
+                    break;
+                case 'restaurant':
+                    if (themeStates[themeType]) {
+                        showComingSoon('맛집');
+                    }
+                    break;
+                case 'hotel':
+                    if (themeStates[themeType]) {
+                        showComingSoon('숙박');
+                    }
+                    break;
+                case 'academy':
+                    if (themeStates[themeType]) {
+                        showComingSoon('학원');
+                    }
+                    break;
+                case 'festival':
+                    if (themeStates[themeType]) {
+                        showComingSoon('축제');
+                    }
+                    break;
+                case 'hotplace':
+                    if (themeStates[themeType]) {
+                        showComingSoon('핫플');
+                    }
+                    break;
+                case 'kids':
+                    if (themeStates[themeType]) {
+                        showComingSoon('어린이');
+                    }
+                    break;
+            }
+            
+            updateMapDisplay();
+        }
+
+        // 준비 중 메시지
+        function showComingSoon(themeName) {
+            showFloatingMessage(`🚧 ${themeName || '해당'} 테마는 준비 중입니다. 곧 서비스될 예정이에요!`, 'success', 3000);
+        }
+
+        // 휴게소 숨기기
+        function hideRestAreas() {
+            if (restAreaLayer) {
+                restAreaLayer.clearLayers();
+                console.log('🚗 휴게소 마커 숨김');
+                updateCurrentCategoryDisplay('지도 영역을 선택해주세요');
+            }
+        }
+
+        // 지도 표시 업데이트 (테마 상태에 따른)
+        function updateMapDisplay() {
+            // 활성화된 테마 목록
+            const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
+            
+            if (activeThemes.length === 0) {
+                updateCurrentCategoryDisplay('지도 영역을 선택해주세요');
+            } else if (activeThemes.length === 1) {
+                const themeNames = {
+                    restarea: '고속도로 휴게소',
+                    restaurant: '맛집',
+                    hotel: '숙박',
+                    academy: '학원',
+                    festival: '축제',
+                    hotplace: '핫플',
+                    kids: '어린이시설'
+                };
+                updateCurrentCategoryDisplay(themeNames[activeThemes[0]]);
+            } else {
+                updateCurrentCategoryDisplay(`${activeThemes.length}개 테마 활성화`);
             }
         }
 
@@ -2294,12 +2539,12 @@
             }
         }
 
-        // 시/도 선택 (동적 마진 적용)
+        // 시/도 선택 (테마 상태 유지)
         function selectProvince(provinceName, rowIndex) {
             console.log(`🔄 시도 선택: ${provinceName}, 행: ${rowIndex}`);
             
-            // 1단계: 모든 버튼 비활성화
-            document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
+            // 1단계: 행정구역 버튼만 비활성화 (테마 버튼은 유지)
+            document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
@@ -2312,14 +2557,12 @@
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
                 console.log(`✅ ${provinceName} 버튼 활성화 완료`);
-            } else {
-                console.error(`❌ ${provinceName} 버튼을 찾을 수 없음 (행: ${rowIndex})`);
             }
 
             currentSelectedProvince = provinceName;
             currentSelectedDistrict = null;
 
-            // 4단계: 해당 행의 시군구 컨테이너 요소 확인
+            // 4-11단계는 기존과 동일...
             const districtsHeader = document.getElementById(`row-districts-header-${rowIndex}`);
             const districtsContent = document.getElementById(`row-districts-content-${rowIndex}`);
             const districtsContainer = document.getElementById(`row-districts-${rowIndex}`);
@@ -2329,28 +2572,18 @@
                 return;
             }
             
-            // 5단계: 헤더 업데이트
             districtsHeader.innerHTML = `<i class="fas fa-map-marked-alt"></i> ${provinceName} 시군구`;
-            
-            // 6단계: 기존 시군구 버튼들 제거
             districtsContent.innerHTML = '';
             
-            // 7단계: 시군구 버튼들을 그리드로 생성하고 개수 반환
             const districtCount = createDistrictsGrid(provinceName, districtsContent);
-            
-            // 8단계: 동적 높이 계산 및 적용
             const dynamicHeight = calculateDistrictsContainerHeight(districtCount);
             districtsContainer.style.minHeight = `${dynamicHeight}px`;
-            
-            // 9단계: 시군구 개수에 따른 동적 마진 적용
             updateProvinceRowMargin(rowIndex, districtCount);
             
             console.log(`📍 ${provinceName}의 ${districtCount}개 시군구 버튼 생성 완료 (높이: ${dynamicHeight}px)`);
             
-            // 10단계: 선택된 행의 시군구 컨테이너만 표시
             showDistrictsContainer(rowIndex, 'selectProvince');
 
-            // 11단계: 시군구 컨테이너로 부드럽게 스크롤
             setTimeout(() => {
                 const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
                 if (rowContainer) {
@@ -2361,10 +2594,16 @@
                 }
             }, 300);
 
-            updateCurrentCategoryDisplay(`선택된 시도: ${provinceName} (시군구를 선택해주세요)`);
-            
-            clearMapAndBoundaries();
+            // 행정구역 경계 표시 (테마 레이어 유지)
             displayAllDistrictsBoundaryForProvince(provinceName);
+            
+            // 활성화된 테마가 있으면 상태 표시 업데이트
+            const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
+            if (activeThemes.length > 0) {
+                updateMapDisplay();
+            } else {
+                updateCurrentCategoryDisplay(`선택된 시도: ${provinceName} (시군구를 선택해주세요)`);
+            }
         }
 
         // 시/군/구 선택 (해당 시군구로 줌인)
@@ -2858,10 +3097,16 @@
             } catch (error) {
                 console.error('자동 위치 감지 오류:', error);
                 selectAdministrativeDivision('전국');
-            } 
+            }
+
+            // 초기 휴게소 테마 활성화 (기본값)
+            if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+                console.log('🚗 초기 휴게소 테마 활성화...');
+                showRestAreas();
+            }
 
             console.log('✅ 좋아할지도 초기화 완료!');
-            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 행정구역이나 휴게소를 선택해주세요.', 'success', 3000);
+            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
             
             if (window.innerWidth <= 768) {
                 toggleSidebar(); 

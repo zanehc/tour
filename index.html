@@ -316,10 +316,27 @@
             text-align: center;
         }
 
-        /* 시군구 버튼은 조금 더 안으로 들여쓰기 */
+        /* 시군구 버튼은 조금 더 안으로 들여쓰기 + 스타일 개선 */
         .administrative-btn.district-btn {
             padding-left: 30px;
-            font-size: 12px;
+            font-size: 11px;
+            padding: 8px 12px 8px 30px;
+            background: #f8f9ff;
+            border: 1px solid #e8eaff;
+            color: #6c757d;
+        }
+
+        .administrative-btn.district-btn:hover {
+            border-color: #c8ccf0;
+            background: #f0f2ff;
+            transform: translateY(-1px);
+            box-shadow: 0 1px 4px rgba(118, 75, 162, 0.08);
+        }
+
+        .administrative-btn.district-btn.active {
+            background: linear-gradient(135deg, #9fa8da 0%, #b39ddb 100%);
+            border-color: #9fa8da;
+            color: white;
         }
         
         /* 지도 컨테이너 */
@@ -993,6 +1010,154 @@
             });
         }
 
+        // 자동 위치 감지 및 시군구 줌인
+        async function autoDetectLocationAndZoom() {
+            return new Promise((resolve) => {
+                if (!navigator.geolocation) {
+                    console.log('위치 서비스가 지원되지 않습니다.');
+                    resolve(false);
+                    return;
+                }
+
+                console.log('📍 자동 위치 감지 시작...');
+                showFloatingMessage('📍 위치 기반 지역을 찾고 있습니다...', 'loading');
+
+                navigator.geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        console.log(`현재 위치: ${latitude}, ${longitude}`);
+
+                        try {
+                            // 현재 위치에서 가장 가까운 시군구 찾기
+                            const nearestDistrict = findNearestDistrict(latitude, longitude);
+                            
+                            if (nearestDistrict) {
+                                const { provinceName, districtName, distance } = nearestDistrict;
+                                console.log(`가장 가까운 지역: ${provinceName} ${districtName} (거리: ${distance.toFixed(2)}km)`);
+                                
+                                // 해당 시도 선택
+                                selectProvince(provinceName);
+                                
+                                // 약간의 지연 후 시군구 선택
+                                setTimeout(() => {
+                                    selectDistrict(provinceName, districtName);
+                                    showFloatingMessage(`📍 현재 위치 기반으로 ${provinceName} ${districtName}을(를) 표시했습니다.`, 'success', 4000);
+                                }, 500);
+                                
+                                resolve(true);
+                            } else {
+                                console.log('가까운 지역을 찾을 수 없습니다.');
+                                showFloatingMessage('위치 기반 지역을 찾을 수 없어 전국 지도를 표시합니다.', 'success', 3000);
+                                resolve(false);
+                            }
+                        } catch (error) {
+                            console.error('위치 기반 지역 찾기 실패:', error);
+                            showFloatingMessage('위치 기반 지역을 찾을 수 없어 전국 지도를 표시합니다.', 'success', 3000);
+                            resolve(false);
+                        }
+                    },
+                    (error) => {
+                        console.log('위치 권한이 거부되었거나 위치를 가져올 수 없습니다:', error.code);
+                        let message = '위치 접근이 거부되어 전국 지도를 표시합니다.';
+                        
+                        switch (error.code) {
+                            case error.PERMISSION_DENIED:
+                                message = '위치 권한이 거부되어 전국 지도를 표시합니다.';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                message = '위치 정보를 사용할 수 없어 전국 지도를 표시합니다.';
+                                break;
+                            case error.TIMEOUT:
+                                message = '위치 요청 시간이 초과되어 전국 지도를 표시합니다.';
+                                break;
+                        }
+                        
+                        showFloatingMessage(message, 'success', 3000);
+                        resolve(false);
+                    },
+                    {
+                        timeout: 10000, // 10초 타임아웃
+                        enableHighAccuracy: false, // 빠른 응답을 위해 정확도 낮춤
+                        maximumAge: 300000 // 5분 캐시
+                    }
+                );
+            });
+        }
+
+        // 현재 위치에서 가장 가까운 시군구 찾기
+        function findNearestDistrict(lat, lng) {
+            let nearest = null;
+            let minDistance = Infinity;
+
+            Object.entries(KOREA_ADMINISTRATIVE_DIVISIONS).forEach(([provinceName, provinceInfo]) => {
+                if (provinceInfo.districts) {
+                    Object.entries(provinceInfo.districts).forEach(([districtName, districtInfo]) => {
+                        // '전체 (시도명)' 제외
+                        if (districtName.startsWith('전체 (')) return;
+                        
+                        const distance = calculateDistance(lat, lng, districtInfo.lat, districtInfo.lng);
+                        
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            nearest = {
+                                provinceName,
+                                districtName,
+                                distance
+                            };
+                        }
+                    });
+                }
+            });
+
+            // 100km 이내의 지역만 반환 (너무 멀면 null)
+            return minDistance <= 100 ? nearest : null;
+        }
+
+        // 두 좌표 간의 거리 계산 (km)
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // 지구의 반지름 (km)
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                     Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+        function handleResize() {
+            window.addEventListener('resize', () => {
+                if (map) {
+                    setTimeout(() => {
+                        map.invalidateSize();
+                    }, 100);
+                }
+                
+                const sidebar = document.getElementById('sidebar');
+                const mainContainer = document.querySelector('.main-container');
+                const toggleBtn = document.querySelector('.menu-toggle i');
+                const isMobile = window.innerWidth <= 768;
+                
+                if (isMobile) {
+                    sidebar.classList.add('closed');
+                    mainContainer.classList.remove('sidebar-closed');
+                    toggleBtn.classList.remove('fa-times');
+                    toggleBtn.classList.add('fa-bars');
+                } else {
+                    if (sidebar.classList.contains('closed')) {
+                        mainContainer.classList.add('sidebar-closed');
+                    } else {
+                        mainContainer.classList.remove('sidebar-closed');
+                    }
+                    toggleBtn.classList.remove('fa-times');
+                    toggleBtn.classList.add('fa-bars');
+                    if (!sidebar.classList.contains('closed')) {
+                        toggleBtn.classList.remove('fa-bars');
+                        toggleBtn.classList.add('fa-times');
+                    }
+                }
+            });
+        }
+
         // 지도상의 모든 GeoJSON 경계 및 마커 클리어
         function clearMapAndBoundaries() {
             if (geojsonLayer) {
@@ -1011,11 +1176,19 @@
         async function loadSigunguGeoJson() {
             showLoadingSpinner('행정구역 경계 데이터를 불러오는 중...');
             try {
-                const response = await fetch('sigun_boundraies.json'); 
-                if (!response.ok) {
-                    throw new Error(`GeoJSON 파일 로드 실패: ${response.statusText}`);
+                console.log('행정구역 GeoJSON 파일 로딩 시작...');
+                
+                // window.fs.readFile을 사용하여 파일 읽기
+                let geoJsonText;
+                try {
+                    geoJsonText = await window.fs.readFile('sigun_boundraies.json', { encoding: 'utf8' });
+                    console.log('✅ sigun_boundraies.json 파일 로드 성공');
+                } catch (error) {
+                    console.error('❌ GeoJSON 파일 읽기 실패:', error);
+                    throw new Error('행정구역 경계 파일을 읽을 수 없습니다. sigun_boundraies.json 파일이 같은 경로에 있는지 확인해주세요.');
                 }
-                sigunguGeoJsonData = await response.json();
+                
+                sigunguGeoJsonData = JSON.parse(geoJsonText);
                 console.log('✅ 시군구 GeoJSON 데이터 로드 완료:', sigunguGeoJsonData.features.length, '개 경계');
                 hideLoadingSpinner();
             } catch (error) {
@@ -1025,34 +1198,20 @@
             }
         }
 
-        // 휴게소 데이터 로드 (개선된 버전)
+        // 휴게소 데이터 로드 (window.fs.readFile 사용)
         async function loadRestAreaData() {
             try {
                 showLoadingSpinner('휴게소 데이터를 불러오는 중...');
                 console.log('휴게소 CSV 파일 로딩 시작...');
                 
-                // 다양한 파일명 시도
-                const possibleFiles = ['data_ex.csv', 'Data_ex.csv', 'DATA_EX.csv'];
-                let csvText = null;
-                let successFile = null;
-                
-                for (const filename of possibleFiles) {
-                    try {
-                        console.log(`${filename} 파일 시도 중...`);
-                        const response = await fetch(filename);
-                        if (response.ok) {
-                            csvText = await response.text();
-                            successFile = filename;
-                            console.log(`✅ ${filename} 파일 로드 성공`);
-                            break;
-                        }
-                    } catch (e) {
-                        console.log(`❌ ${filename} 파일 로드 실패:`, e.message);
-                    }
-                }
-                
-                if (!csvText) {
-                    throw new Error('휴게소 CSV 파일을 찾을 수 없습니다. data_ex.csv 파일이 같은 경로에 있는지 확인해주세요.');
+                // window.fs.readFile을 사용하여 파일 읽기
+                let csvText;
+                try {
+                    csvText = await window.fs.readFile('data_ex.csv', { encoding: 'utf8' });
+                    console.log('✅ data_ex.csv 파일 로드 성공');
+                } catch (error) {
+                    console.error('❌ CSV 파일 읽기 실패:', error);
+                    throw new Error('휴게소 CSV 파일을 읽을 수 없습니다. data_ex.csv 파일이 같은 경로에 있는지 확인해주세요.');
                 }
                 
                 console.log(`CSV 파일 크기: ${csvText.length} bytes`);
@@ -1655,8 +1814,17 @@
                 console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다. data_ex.csv 파일을 확인해주세요.');
             }
 
-            // 초기 로드 시 전국 경계 표시
-            selectAdministrativeDivision('전국'); 
+            // 초기 로드 시 자동 위치 감지 또는 전국 경계 표시
+            try {
+                const locationDetected = await autoDetectLocationAndZoom();
+                if (!locationDetected) {
+                    // 위치 감지 실패 시 전국 표시
+                    selectAdministrativeDivision('전국');
+                }
+            } catch (error) {
+                console.error('자동 위치 감지 오류:', error);
+                selectAdministrativeDivision('전국');
+            } 
 
             console.log('✅ 좋아할지도 초기화 완료!');
             showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 행정구역이나 휴게소를 선택해주세요.', 'success', 3000);

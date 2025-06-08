@@ -1198,123 +1198,92 @@
             }
         }
 
-        // 휴게소 데이터 로드 (window.fs.readFile 사용)
+        // 휴게소 데이터 로드 (CSV 및 XLSX 지원)
         async function loadRestAreaData() {
             try {
                 showLoadingSpinner('휴게소 데이터를 불러오는 중...');
-                console.log('휴게소 CSV 파일 로딩 시작...');
+                console.log('휴게소 데이터 파일 로딩 시작...');
                 
-                // window.fs.readFile을 사용하여 파일 읽기
-                let csvText;
-                try {
-                    csvText = await window.fs.readFile('data_ex.csv', { encoding: 'utf8' });
-                    console.log('✅ data_ex.csv 파일 로드 성공');
-                } catch (error) {
-                    console.error('❌ CSV 파일 읽기 실패:', error);
-                    throw new Error('휴게소 CSV 파일을 읽을 수 없습니다. data_ex.csv 파일이 같은 경로에 있는지 확인해주세요.');
-                }
+                // 지원하는 파일 형식들 (우선순위 순)
+                const possibleFiles = [
+                    { name: 'data_ex.csv', type: 'csv' },
+                    { name: 'data_ex.xlsx', type: 'xlsx' },
+                    { name: 'Data_ex.csv', type: 'csv' },
+                    { name: 'DATA_EX.csv', type: 'csv' },
+                    { name: 'Data_ex.xlsx', type: 'xlsx' },
+                    { name: 'DATA_EX.xlsx', type: 'xlsx' },
+                    { name: '휴게소데이터.csv', type: 'csv' },
+                    { name: '휴게소데이터.xlsx', type: 'xlsx' }
+                ];
                 
-                console.log(`CSV 파일 크기: ${csvText.length} bytes`);
-                console.log('CSV 첫 줄:', csvText.split('\n')[0]);
+                let parsedData = null;
+                let successFile = null;
                 
-                // 정교한 CSV 파싱 함수
-                function parseCSV(text) {
-                    const result = [];
-                    const lines = text.split('\n');
-                    
-                    if (lines.length === 0) {
-                        throw new Error('CSV 파일이 비어있습니다.');
-                    }
-                    
-                    // 헤더 파싱
-                    const headers = parseCSVLine(lines[0]);
-                    console.log('CSV 헤더:', headers);
-                    
-                    // 필수 컬럼 체크
-                    const requiredColumns = ['휴게소명', '위도', '경도'];
-                    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-                    if (missingColumns.length > 0) {
-                        throw new Error(`필수 컬럼이 없습니다: ${missingColumns.join(', ')}`);
-                    }
-                    
-                    // 데이터 파싱
-                    for (let i = 1; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (line) {
-                            try {
-                                const values = parseCSVLine(line);
-                                if (values.length >= headers.length - 2) { // 일부 컬럼이 빠져도 허용
-                                    const row = {};
-                                    headers.forEach((header, index) => {
-                                        row[header] = values[index] || '';
-                                    });
-                                    result.push(row);
-                                }
-                            } catch (e) {
-                                console.warn(`라인 ${i + 1} 파싱 실패:`, e.message);
-                            }
-                        }
-                    }
-                    
-                    return result;
-                }
-                
-                // CSV 라인 파싱 함수 (따옴표 처리 개선)
-                function parseCSVLine(line) {
-                    const result = [];
-                    let current = '';
-                    let inQuotes = false;
-                    
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
-                        const nextChar = line[i + 1];
+                // 각 파일을 순서대로 시도
+                for (const fileInfo of possibleFiles) {
+                    try {
+                        console.log(`${fileInfo.name} (${fileInfo.type}) 파일 시도 중...`);
                         
-                        if (char === '"') {
-                            if (inQuotes && nextChar === '"') {
-                                // 따옴표 이스케이프 ("")
-                                current += '"';
-                                i++; // 다음 따옴표 건너뛰기
-                            } else {
-                                // 따옴표 시작/끝
-                                inQuotes = !inQuotes;
-                            }
-                        } else if (char === ',' && !inQuotes) {
-                            // 필드 구분자
-                            result.push(current.trim());
-                            current = '';
-                        } else {
-                            current += char;
+                        if (fileInfo.type === 'csv') {
+                            // CSV 파일 처리
+                            const csvText = await window.fs.readFile(fileInfo.name, { encoding: 'utf8' });
+                            parsedData = parseCSVData(csvText);
+                            successFile = fileInfo.name;
+                            console.log(`✅ ${fileInfo.name} 파일 로드 성공 (CSV)`);
+                            break;
+                        } else if (fileInfo.type === 'xlsx') {
+                            // XLSX 파일 처리
+                            const xlsxBuffer = await window.fs.readFile(fileInfo.name);
+                            parsedData = parseXLSXData(xlsxBuffer);
+                            successFile = fileInfo.name;
+                            console.log(`✅ ${fileInfo.name} 파일 로드 성공 (XLSX)`);
+                            break;
                         }
+                    } catch (error) {
+                        console.log(`❌ ${fileInfo.name} 파일 로드 실패:`, error.message);
+                        continue;
                     }
-                    
-                    // 마지막 필드 추가
-                    result.push(current.trim());
-                    
-                    return result;
                 }
                 
-                const parsedData = parseCSV(csvText);
-                console.log(`파싱된 데이터 수: ${parsedData.length}개`);
+                if (!parsedData || parsedData.length === 0) {
+                    throw new Error('휴게소 데이터 파일을 찾을 수 없습니다. data_ex.csv 또는 data_ex.xlsx 파일이 같은 경로에 있는지 확인해주세요.');
+                }
                 
+                console.log(`파싱된 데이터 수: ${parsedData.length}개 (파일: ${successFile})`);
+                
+                // 데이터 검증 및 변환
                 restAreaData = [];
                 let validCount = 0;
                 
                 parsedData.forEach((row, index) => {
                     try {
                         // 위도, 경도 검증
-                        const lat = parseFloat(row['위도']);
-                        const lng = parseFloat(row['경도']);
+                        const lat = parseFloat(row['위도'] || row['lat'] || row['latitude']);
+                        const lng = parseFloat(row['경도'] || row['lng'] || row['longitude']);
                         
                         if (!isNaN(lat) && !isNaN(lng) && 
                             lat >= 33 && lat <= 39 && // 대한민국 위도 범위
                             lng >= 124 && lng <= 132) { // 대한민국 경도 범위
                             
-                            row['위도'] = lat;
-                            row['경도'] = lng;
-                            restAreaData.push(row);
+                            // 통일된 컬럼명으로 변환
+                            const standardizedRow = {
+                                '휴게소명': row['휴게소명'] || row['name'] || row['restarea_name'] || '',
+                                '고속도로': row['고속도로'] || row['highway'] || row['road'] || '',
+                                '위도': lat,
+                                '경도': lng,
+                                '휴게소종류': row['휴게소종류'] || row['type'] || '',
+                                '운영시간': row['운영시간'] || row['hours'] || '',
+                                '방향': row['방향'] || row['direction'] || '',
+                                '주요편의시설': row['주요편의시설'] || row['facilities'] || '',
+                                '전화번호': row['전화번호'] || row['phone'] || '',
+                                '데이터기준일': row['데이터기준일'] || row['date'] || '',
+                                '프랜차이즈매장': row['프랜차이즈매장'] || row['franchise'] || ''
+                            };
+                            
+                            restAreaData.push(standardizedRow);
                             validCount++;
                         } else {
-                            console.warn(`유효하지 않은 좌표 (행 ${index + 2}):`, row['휴게소명'], lat, lng);
+                            console.warn(`유효하지 않은 좌표 (행 ${index + 2}):`, row['휴게소명'] || `행${index+2}`, lat, lng);
                         }
                     } catch (e) {
                         console.warn(`데이터 처리 실패 (행 ${index + 2}):`, e.message);
@@ -1324,7 +1293,7 @@
                 hideLoadingSpinner();
                 
                 if (restAreaData.length === 0) {
-                    throw new Error('유효한 휴게소 데이터가 없습니다.');
+                    throw new Error('유효한 휴게소 데이터가 없습니다. 데이터 형식을 확인해주세요.');
                 }
                 
                 console.log(`✅ 휴게소 데이터 로드 완료: 전체 ${parsedData.length}개 중 ${validCount}개 유효`);
@@ -1333,8 +1302,134 @@
                 console.error('❌ 휴게소 데이터 로드 실패:', error);
                 hideLoadingSpinner();
                 showFloatingMessage(`휴게소 데이터 로드 실패: ${error.message}`, 'error', 7000);
-                restAreaData = null; // 명시적으로 null 설정
+                restAreaData = null;
             }
+        }
+
+        // CSV 데이터 파싱 함수
+        function parseCSVData(csvText) {
+            const result = [];
+            const lines = csvText.split('\n');
+            
+            if (lines.length === 0) {
+                throw new Error('CSV 파일이 비어있습니다.');
+            }
+            
+            // 헤더 파싱
+            const headers = parseCSVLine(lines[0]);
+            console.log('CSV 헤더:', headers);
+            
+            // 필수 컬럼 체크
+            const requiredColumns = ['휴게소명', '위도', '경도'];
+            const hasRequiredColumns = requiredColumns.some(col => 
+                headers.some(header => header.includes(col) || col.includes(header))
+            );
+            
+            if (!hasRequiredColumns) {
+                console.warn('일부 필수 컬럼이 없을 수 있습니다. 계속 진행합니다.');
+            }
+            
+            // 데이터 파싱
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line) {
+                    try {
+                        const values = parseCSVLine(line);
+                        if (values.length >= Math.min(headers.length, 3)) { // 최소 3개 컬럼
+                            const row = {};
+                            headers.forEach((header, index) => {
+                                row[header] = values[index] || '';
+                            });
+                            result.push(row);
+                        }
+                    } catch (e) {
+                        console.warn(`CSV 라인 ${i + 1} 파싱 실패:`, e.message);
+                    }
+                }
+            }
+            
+            return result;
+        }
+
+        // XLSX 데이터 파싱 함수
+        function parseXLSXData(xlsxBuffer) {
+            try {
+                console.log('XLSX 파일 파싱 시작...');
+                const workbook = XLSX.read(xlsxBuffer, { type: 'array' });
+                
+                // 첫 번째 워크시트 사용
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                console.log(`XLSX 워크시트: ${firstSheetName}`);
+                
+                // JSON으로 변환
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                    header: 1, // 배열 형태로 반환
+                    defval: '' // 빈 셀 기본값
+                });
+                
+                if (jsonData.length === 0) {
+                    throw new Error('XLSX 파일이 비어있습니다.');
+                }
+                
+                // 헤더와 데이터 분리
+                const headers = jsonData[0];
+                console.log('XLSX 헤더:', headers);
+                
+                const result = [];
+                for (let i = 1; i < jsonData.length; i++) {
+                    const rowArray = jsonData[i];
+                    if (rowArray && rowArray.length > 0) {
+                        const rowObject = {};
+                        headers.forEach((header, index) => {
+                            rowObject[header] = rowArray[index] || '';
+                        });
+                        result.push(rowObject);
+                    }
+                }
+                
+                console.log(`XLSX 파싱 완료: ${result.length}개 행`);
+                return result;
+                
+            } catch (error) {
+                console.error('XLSX 파싱 실패:', error);
+                throw new Error(`XLSX 파일 파싱 실패: ${error.message}`);
+            }
+        }
+
+        // CSV 라인 파싱 함수 (따옴표 처리 개선)
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                const nextChar = line[i + 1];
+                
+                if (char === '"') {
+                    if (inQuotes && nextChar === '"') {
+                        // 따옴표 이스케이프 ("")
+                        current += '"';
+                        i++; // 다음 따옴표 건너뛰기
+                    } else {
+                        // 따옴표 시작/끝
+                        inQuotes = !inQuotes;
+                    }
+                } else if (char === ',' && !inQuotes) {
+                    // 필드 구분자
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            // 마지막 필드 추가
+            result.push(current.trim());
+            
+            return result;
         }
 
         // GeoJSON 레이어 기본 스타일

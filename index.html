@@ -589,7 +589,6 @@
                     </div>
                     <div class="category-section-content" id="administrative-map-content">
                         <div id="province-list"></div>
-                        <div id="district-list"></div>
                     </div>
                 </div>
                 
@@ -1026,37 +1025,74 @@
             }
         }
 
-        // 휴게소 데이터 로드
+        // 휴게소 데이터 로드 (개선된 버전)
         async function loadRestAreaData() {
             try {
                 showLoadingSpinner('휴게소 데이터를 불러오는 중...');
-                const response = await fetch('data_ex.csv');
-                if (!response.ok) {
-                    throw new Error(`CSV 파일 로드 실패: ${response.statusText}`);
+                console.log('휴게소 CSV 파일 로딩 시작...');
+                
+                // 다양한 파일명 시도
+                const possibleFiles = ['data_ex.csv', 'Data_ex.csv', 'DATA_EX.csv'];
+                let csvText = null;
+                let successFile = null;
+                
+                for (const filename of possibleFiles) {
+                    try {
+                        console.log(`${filename} 파일 시도 중...`);
+                        const response = await fetch(filename);
+                        if (response.ok) {
+                            csvText = await response.text();
+                            successFile = filename;
+                            console.log(`✅ ${filename} 파일 로드 성공`);
+                            break;
+                        }
+                    } catch (e) {
+                        console.log(`❌ ${filename} 파일 로드 실패:`, e.message);
+                    }
                 }
-                const csvText = await response.text();
+                
+                if (!csvText) {
+                    throw new Error('휴게소 CSV 파일을 찾을 수 없습니다. data_ex.csv 파일이 같은 경로에 있는지 확인해주세요.');
+                }
+                
+                console.log(`CSV 파일 크기: ${csvText.length} bytes`);
+                console.log('CSV 첫 줄:', csvText.split('\n')[0]);
                 
                 // 정교한 CSV 파싱 함수
                 function parseCSV(text) {
                     const result = [];
                     const lines = text.split('\n');
                     
-                    if (lines.length === 0) return result;
+                    if (lines.length === 0) {
+                        throw new Error('CSV 파일이 비어있습니다.');
+                    }
                     
                     // 헤더 파싱
                     const headers = parseCSVLine(lines[0]);
+                    console.log('CSV 헤더:', headers);
+                    
+                    // 필수 컬럼 체크
+                    const requiredColumns = ['휴게소명', '위도', '경도'];
+                    const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+                    if (missingColumns.length > 0) {
+                        throw new Error(`필수 컬럼이 없습니다: ${missingColumns.join(', ')}`);
+                    }
                     
                     // 데이터 파싱
                     for (let i = 1; i < lines.length; i++) {
                         const line = lines[i].trim();
                         if (line) {
-                            const values = parseCSVLine(line);
-                            if (values.length === headers.length) {
-                                const row = {};
-                                headers.forEach((header, index) => {
-                                    row[header] = values[index] || '';
-                                });
-                                result.push(row);
+                            try {
+                                const values = parseCSVLine(line);
+                                if (values.length >= headers.length - 2) { // 일부 컬럼이 빠져도 허용
+                                    const row = {};
+                                    headers.forEach((header, index) => {
+                                        row[header] = values[index] || '';
+                                    });
+                                    result.push(row);
+                                }
+                            } catch (e) {
+                                console.warn(`라인 ${i + 1} 파싱 실패:`, e.message);
                             }
                         }
                     }
@@ -1064,7 +1100,7 @@
                     return result;
                 }
                 
-                // CSV 라인 파싱 함수 (따옴표 처리)
+                // CSV 라인 파싱 함수 (따옴표 처리 개선)
                 function parseCSVLine(line) {
                     const result = [];
                     let current = '';
@@ -1099,26 +1135,46 @@
                 }
                 
                 const parsedData = parseCSV(csvText);
-                restAreaData = [];
+                console.log(`파싱된 데이터 수: ${parsedData.length}개`);
                 
-                parsedData.forEach(row => {
-                    // 위도, 경도가 유효한 경우만 추가
-                    if (row['위도'] && row['경도'] && 
-                        !isNaN(parseFloat(row['위도'])) && 
-                        !isNaN(parseFloat(row['경도']))) {
-                        row['위도'] = parseFloat(row['위도']);
-                        row['경도'] = parseFloat(row['경도']);
-                        restAreaData.push(row);
+                restAreaData = [];
+                let validCount = 0;
+                
+                parsedData.forEach((row, index) => {
+                    try {
+                        // 위도, 경도 검증
+                        const lat = parseFloat(row['위도']);
+                        const lng = parseFloat(row['경도']);
+                        
+                        if (!isNaN(lat) && !isNaN(lng) && 
+                            lat >= 33 && lat <= 39 && // 대한민국 위도 범위
+                            lng >= 124 && lng <= 132) { // 대한민국 경도 범위
+                            
+                            row['위도'] = lat;
+                            row['경도'] = lng;
+                            restAreaData.push(row);
+                            validCount++;
+                        } else {
+                            console.warn(`유효하지 않은 좌표 (행 ${index + 2}):`, row['휴게소명'], lat, lng);
+                        }
+                    } catch (e) {
+                        console.warn(`데이터 처리 실패 (행 ${index + 2}):`, e.message);
                     }
                 });
                 
                 hideLoadingSpinner();
-                console.log('✅ 휴게소 데이터 로드 완료:', restAreaData.length, '개 휴게소');
+                
+                if (restAreaData.length === 0) {
+                    throw new Error('유효한 휴게소 데이터가 없습니다.');
+                }
+                
+                console.log(`✅ 휴게소 데이터 로드 완료: 전체 ${parsedData.length}개 중 ${validCount}개 유효`);
                 
             } catch (error) {
                 console.error('❌ 휴게소 데이터 로드 실패:', error);
                 hideLoadingSpinner();
-                showFloatingMessage('휴게소 데이터를 불러오지 못했습니다.', 'error', 5000);
+                showFloatingMessage(`휴게소 데이터 로드 실패: ${error.message}`, 'error', 7000);
+                restAreaData = null; // 명시적으로 null 설정
             }
         }
 
@@ -1148,7 +1204,6 @@
         function loadProvinces() {
             const provinceListDiv = document.getElementById('province-list');
             provinceListDiv.innerHTML = '';
-            document.getElementById('district-list').innerHTML = '';
 
             const allKoreaBtn = document.createElement('button');
             allKoreaBtn.className = 'administrative-btn';
@@ -1168,6 +1223,9 @@
 
         // 시/도 선택 (줌인 없이 시군구 버튼만 생성)
         function selectProvince(provinceName) {
+            // 이전에 선택된 시도의 시군구 버튼들 제거
+            removeAllDistrictButtons();
+            
             document.querySelectorAll('#province-list .administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
@@ -1188,38 +1246,55 @@
             displayAllDistrictsBoundaryForProvince(provinceName);
         }
 
-        // 시/군/구 목록 표시
+        // 모든 시군구 버튼 제거
+        function removeAllDistrictButtons() {
+            const existingDistrictBtns = document.querySelectorAll('.district-btn');
+            existingDistrictBtns.forEach(btn => btn.remove());
+        }
+
+        // 시/군/구 목록 표시 (선택된 시도 바로 밑에)
         function displayDistricts(provinceName) {
-            const districtListDiv = document.getElementById('district-list');
-            districtListDiv.innerHTML = '';
+            // 기존 시군구 버튼들 제거
+            removeAllDistrictButtons();
             
             const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
             if (provinceInfo && provinceInfo.districts) {
+                const selectedProvinceBtn = document.querySelector(`#province-list [data-province="${provinceName}"]`);
+                if (!selectedProvinceBtn) return;
+                
+                // '전체 (시도명)' 버튼 생성
                 const allDistrictBtn = document.createElement('button');
                 allDistrictBtn.className = 'administrative-btn district-btn';
                 allDistrictBtn.textContent = `전체 (${provinceName})`;
                 allDistrictBtn.onclick = () => selectAllDistrict(provinceName);
-                districtListDiv.appendChild(allDistrictBtn);
+                
+                // 선택된 시도 버튼 바로 다음에 삽입
+                selectedProvinceBtn.parentNode.insertBefore(allDistrictBtn, selectedProvinceBtn.nextSibling);
 
+                // 시/군/구 데이터를 정렬하여 표시
                 const sortedDistricts = Object.keys(provinceInfo.districts).filter(d => d !== `전체 (${provinceName})`).sort();
-
+                
+                let lastInsertedBtn = allDistrictBtn;
                 sortedDistricts.forEach(districtName => {
                     const button = document.createElement('button');
                     button.className = 'administrative-btn district-btn';
                     button.textContent = districtName;
                     button.setAttribute('data-district', districtName);
                     button.onclick = () => selectDistrict(provinceName, districtName);
-                    districtListDiv.appendChild(button);
+                    
+                    // 이전에 삽입된 버튼 다음에 삽입
+                    lastInsertedBtn.parentNode.insertBefore(button, lastInsertedBtn.nextSibling);
+                    lastInsertedBtn = button;
                 });
             }
         }
 
         // 시/군/구 선택 (해당 시군구로 줌인)
         function selectDistrict(provinceName, districtName) {
-            document.querySelectorAll('#district-list .administrative-btn').forEach(btn => {
+            document.querySelectorAll('.district-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            const selectedDistrictBtn = document.querySelector(`#district-list [data-district="${districtName}"]`);
+            const selectedDistrictBtn = document.querySelector(`[data-district="${districtName}"]`);
             if (selectedDistrictBtn) {
                 selectedDistrictBtn.classList.add('active');
             }
@@ -1266,6 +1341,9 @@
 
         // 전국 선택
         function selectAdministrativeDivision(region) {
+            // 시군구 버튼들 제거
+            removeAllDistrictButtons();
+            
             document.querySelectorAll('.administrative-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
@@ -1277,7 +1355,6 @@
 
             currentSelectedProvince = null;
             currentSelectedDistrict = null;
-            document.getElementById('district-list').innerHTML = '';
 
             map.setView([36.5, 127.5], 7);
             updateCurrentCategoryDisplay(`지도 영역: ${region}`);
@@ -1383,10 +1460,17 @@
             }).addTo(geojsonLayer);
         }
 
-        // 휴게소 표시
+        // 휴게소 표시 (개선된 버전)
         function showRestAreas() {
-            if (!restAreaData || restAreaData.length === 0) {
-                showFloatingMessage('휴게소 데이터가 아직 로드되지 않았거나 비어있습니다. 잠시 후 다시 시도해주세요.', 'error', 4000);
+            console.log('🚗 휴게소 표시 요청...');
+            
+            if (!restAreaData || !Array.isArray(restAreaData) || restAreaData.length === 0) {
+                const errorMsg = !restAreaData ? 
+                    '휴게소 데이터가 로드되지 않았습니다.' : 
+                    `휴게소 데이터가 비어있습니다. (${restAreaData ? restAreaData.length : 0}개)`;
+                
+                console.error('❌ 휴게소 데이터 오류:', errorMsg);
+                showFloatingMessage(`${errorMsg} data_ex.csv 파일이 올바른 위치에 있는지 확인하고 페이지를 새로고침해주세요.`, 'error', 7000);
                 return;
             }
 
@@ -1394,7 +1478,14 @@
             document.querySelectorAll('.administrative-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            document.querySelector('.category-btn[onclick="showRestAreas()"]').classList.add('active');
+            
+            // 시군구 버튼들 제거
+            removeAllDistrictButtons();
+            
+            const restAreaBtn = document.querySelector('.category-btn[onclick="showRestAreas()"]');
+            if (restAreaBtn) {
+                restAreaBtn.classList.add('active');
+            }
 
             clearMapAndBoundaries();
             
@@ -1406,9 +1497,19 @@
 
             // 휴게소 마커 표시
             let successCount = 0;
-            restAreaData.forEach(restArea => {
+            let errorCount = 0;
+            
+            restAreaData.forEach((restArea, index) => {
                 try {
-                    const marker = L.marker([restArea['위도'], restArea['경도']], {
+                    const lat = restArea['위도'];
+                    const lng = restArea['경도'];
+                    
+                    if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
+                        errorCount++;
+                        return;
+                    }
+                    
+                    const marker = L.marker([lat, lng], {
                         icon: L.divIcon({
                             className: 'rest-area-marker',
                             html: '<i class="fas fa-coffee"></i>',
@@ -1428,12 +1529,19 @@
                     marker.addTo(restAreaLayer);
                     successCount++;
                 } catch (error) {
-                    console.warn('휴게소 마커 생성 실패:', restArea['휴게소명'], error);
+                    console.warn(`휴게소 마커 생성 실패 (${index}):`, restArea['휴게소명'], error);
+                    errorCount++;
                 }
             });
 
             hideLoadingSpinner();
-            showFloatingMessage(`${successCount}개의 휴게소가 표시되었습니다.`, 'success', 3000);
+            
+            if (successCount > 0) {
+                console.log(`✅ ${successCount}개 휴게소 표시 완료${errorCount > 0 ? ` (${errorCount}개 오류)` : ''}`);
+                showFloatingMessage(`${successCount}개의 휴게소가 표시되었습니다.${errorCount > 0 ? ` (${errorCount}개 오류)` : ''}`, 'success', 4000);
+            } else {
+                showFloatingMessage('표시할 수 있는 휴게소가 없습니다. 데이터를 확인해주세요.', 'error', 5000);
+            }
         }
 
         // 휴게소 팝업 내용 생성
@@ -1539,9 +1647,13 @@
             await Promise.all(loadingPromises);
             
             // 데이터 로딩 상태 확인
-            console.log('데이터 로딩 완료 상태:');
-            console.log('- 행정구역 데이터:', sigunguGeoJsonData ? '✅ 로드됨' : '❌ 실패');
+            console.log('📊 데이터 로딩 완료 상태:');
+            console.log('- 행정구역 데이터:', sigunguGeoJsonData ? `✅ ${sigunguGeoJsonData.features?.length || 0}개 로드됨` : '❌ 실패');
             console.log('- 휴게소 데이터:', restAreaData ? `✅ ${restAreaData.length}개 로드됨` : '❌ 실패');
+            
+            if (!restAreaData || restAreaData.length === 0) {
+                console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다. data_ex.csv 파일을 확인해주세요.');
+            }
 
             // 초기 로드 시 전국 경계 표시
             selectAdministrativeDivision('전국'); 

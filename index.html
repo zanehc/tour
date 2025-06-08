@@ -605,9 +605,10 @@
                 left: 15px;
             }
 
-            /* 모바일에서도 3개 유지 */
+            /* 모바일에서도 가로 배치 유지 */
             .provinces-row-buttons {
-                grid-template-columns: repeat(3, 1fr);
+                display: flex;
+                flex-direction: row;
                 gap: 4px;
             }
 
@@ -616,6 +617,7 @@
                 padding: 6px 2px;
                 min-height: 32px;
                 line-height: 1.0;
+                flex: 1;
             }
 
             .row-districts-header {
@@ -1412,6 +1414,8 @@
                                 const provinceIndex = provinces.indexOf(provinceName);
                                 const rowIndex = Math.floor(provinceIndex / 3);
                                 
+                                console.log(`${provinceName}은 ${rowIndex}번째 행에 위치`);
+                                
                                 // 해당 시도 선택
                                 selectProvince(provinceName, rowIndex);
                                 
@@ -1814,9 +1818,13 @@
             const provinces = Object.keys(KOREA_ADMINISTRATIVE_DIVISIONS);
             const rowSize = 3;
             
+            console.log(`총 ${provinces.length}개 시도를 ${rowSize}개씩 그룹화`);
+            
             for (let i = 0; i < provinces.length; i += rowSize) {
                 const rowProvinces = provinces.slice(i, i + rowSize);
                 const rowIndex = Math.floor(i / rowSize);
+                
+                console.log(`행 ${rowIndex}: ${rowProvinces.join(', ')}`);
                 
                 // 행 컨테이너 생성
                 const provinceRow = document.createElement('div');
@@ -1857,24 +1865,30 @@
                 provinceRow.appendChild(rowDistrictsContainer);
                 containerDiv.appendChild(provinceRow);
             }
+            
+            console.log('시도 버튼 로드 완료');
         }
 
         // 시/도 선택 (해당 행의 시군구 영역에만 시군구들 표시)
         function selectProvince(provinceName, rowIndex) {
-            // 모든 버튼 비활성화
+            console.log(`시도 선택: ${provinceName}, 행: ${rowIndex}`);
+            
+            // 모든 버튼 비활성화 (시도, 시군구, 카테고리)
             document.querySelectorAll('.all-korea-btn, .province-btn, .district-btn, .category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             
-            // 모든 행의 시군구 컨테이너 숨김 (중요!)
-            document.querySelectorAll('.row-districts-container').forEach(container => {
+            // 모든 행의 시군구 컨테이너 완전히 숨김 (중요!)
+            document.querySelectorAll('.row-districts-container').forEach((container, index) => {
                 container.classList.remove('show');
+                console.log(`행 ${index} 시군구 컨테이너 숨김`);
             });
 
-            // 선택된 시도 버튼 활성화
-            const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
+            // 선택된 시도 버튼만 활성화
+            const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"][data-row="${rowIndex}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
+                console.log(`${provinceName} 버튼 활성화`);
             }
 
             currentSelectedProvince = provinceName;
@@ -1884,6 +1898,11 @@
             const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
             const districtsHeader = document.getElementById(`row-districts-header-${rowIndex}`);
             const districtsContent = document.getElementById(`row-districts-content-${rowIndex}`);
+            
+            if (!rowContainer || !districtsHeader || !districtsContent) {
+                console.error(`행 ${rowIndex}의 시군구 컨테이너를 찾을 수 없습니다.`);
+                return;
+            }
             
             // 헤더 업데이트
             districtsHeader.innerHTML = `<i class="fas fa-map-marked-alt"></i> ${provinceName} 시군구`;
@@ -1914,10 +1933,13 @@
                     districtBtn.onclick = () => selectDistrict(provinceName, districtName);
                     districtsContent.appendChild(districtBtn);
                 });
+                
+                console.log(`${provinceName}의 ${sortedDistricts.length + 1}개 시군구 버튼 생성 완료`);
             }
             
-            // 해당 행의 시군구 컨테이너만 표시
+            // 선택된 행의 시군구 컨테이너만 표시
             rowContainer.classList.add('show');
+            console.log(`행 ${rowIndex} 시군구 컨테이너 표시`);
 
             // 시군구 컨테이너로 부드럽게 스크롤
             setTimeout(() => {
@@ -1940,7 +1962,7 @@
                 btn.classList.remove('active');
             });
             
-            // 선택된 시도 버튼 활성화 유지
+            // 선택된 시도 버튼 활성화 유지 (정확한 버튼 찾기)
             const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
@@ -1973,16 +1995,19 @@
                 btn.classList.remove('active');
             });
             
-            // 선택된 시도 버튼 활성화 유지
+            // 선택된 시도 버튼 활성화 유지 (정확한 버튼 찾기)
             const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
             if (selectedProvinceBtn) {
                 selectedProvinceBtn.classList.add('active');
             }
             
-            // '전체' 버튼 활성화
-            const allDistrictBtn = document.querySelector('.all-district');
-            if (allDistrictBtn) {
-                allDistrictBtn.classList.add('active');
+            // '전체' 버튼 활성화 (현재 활성 시군구 컨테이너에서 찾기)
+            const activeContainer = document.querySelector('.row-districts-container.show');
+            if (activeContainer) {
+                const allDistrictBtn = activeContainer.querySelector('.all-district');
+                if (allDistrictBtn) {
+                    allDistrictBtn.classList.add('active');
+                }
             }
             
             currentSelectedDistrict = null;

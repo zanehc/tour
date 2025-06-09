@@ -775,63 +775,109 @@ async function loadRestAreaData() {
         showLoadingSpinner('휴게소 데이터를 불러오는 중...');
         
         let parsedData = null;
+        let dataSource = '';
         
         try {
             const xlsxBuffer = await window.fs.readFile('data_ex.xlsx');
+            console.log('XLSX 파일 크기:', xlsxBuffer.length, '바이트');
             parsedData = parseXLSXData(xlsxBuffer);
+            dataSource = 'XLSX';
+            console.log('XLSX 파싱 완료, 행 수:', parsedData.length);
         } catch (xlsxError) {
+            console.warn('XLSX 파일 로드 실패:', xlsxError.message);
             try {
                 const csvText = await window.fs.readFile('data_ex.csv', { encoding: 'utf8' });
+                console.log('CSV 파일 크기:', csvText.length, '문자');
                 parsedData = parseCSVData(csvText);
+                dataSource = 'CSV';
+                console.log('CSV 파싱 완료, 행 수:', parsedData.length);
             } catch (csvError) {
+                console.warn('CSV 파일 로드 실패:', csvError.message);
                 throw new Error('실제 데이터 파일을 찾을 수 없습니다.');
             }
         }
         
         restAreaData = [];
         let validCount = 0;
+        let invalidCount = 0;
+        let missingColumns = new Set();
         
-        parsedData.forEach((row) => {
+        console.log('원본 데이터 샘플:', parsedData.slice(0, 3));
+        
+        parsedData.forEach((row, index) => {
             try {
-                const lat = parseFloat(row['위도'] || row['lat'] || row['latitude']);
-                const lng = parseFloat(row['경도'] || row['lng'] || row['longitude']);
+                // 다양한 컬럼명 시도
+                const lat = parseFloat(
+                    row['위도'] || row['lat'] || row['latitude'] || 
+                    row['Latitude'] || row['LAT'] || row['y'] || row['Y']
+                );
+                const lng = parseFloat(
+                    row['경도'] || row['lng'] || row['longitude'] || 
+                    row['Longitude'] || row['LNG'] || row['x'] || row['X']
+                );
                 
-                if (!isNaN(lat) && !isNaN(lng) && 
-                    lat >= 33 && lat <= 39 && 
-                    lng >= 124 && lng <= 132) {
-                    
-                    const standardizedRow = {
-                        '휴게소명': row['휴게소명'] || '',
-                        '고속도로': row['고속도로'] || '',
-                        '위도': lat,
-                        '경도': lng,
-                        '휴게소종류': row['휴게소종류'] || '',
-                        '운영시간': row['운영시간'] || '',
-                        '방향': row['방향'] || '',
-                        '주요편의시설': row['주요편의시설'] || '',
-                        '전화번호': row['전화번호'] || '',
-                        '데이터기준일': row['데이터기준일'] || '',
-                        '프랜차이즈매장': row['프랜차이즈매장'] || ''
-                    };
-                    
-                    restAreaData.push(standardizedRow);
-                    validCount++;
+                if (isNaN(lat) || isNaN(lng)) {
+                    invalidCount++;
+                    if (index < 5) { // 처음 5개 행만 로깅
+                        console.log(`행 ${index + 1} - 좌표 누락:`, {
+                            availableKeys: Object.keys(row),
+                            lat: row['위도'] || row['lat'] || row['latitude'],
+                            lng: row['경도'] || row['lng'] || row['longitude']
+                        });
+                        Object.keys(row).forEach(key => missingColumns.add(key));
+                    }
+                    return;
                 }
+                
+                if (lat < 33 || lat > 39 || lng < 124 || lng > 132) {
+                    invalidCount++;
+                    return;
+                }
+                
+                const standardizedRow = {
+                    '휴게소명': row['휴게소명'] || row['name'] || row['Name'] || row['명칭'] || `휴게소${index + 1}`,
+                    '고속도로': row['고속도로'] || row['highway'] || row['Highway'] || row['도로명'] || '정보없음',
+                    '위도': lat,
+                    '경도': lng,
+                    '휴게소종류': row['휴게소종류'] || row['type'] || row['Type'] || '일반형',
+                    '운영시간': row['운영시간'] || row['hours'] || row['Hours'] || '24시간',
+                    '방향': row['방향'] || row['direction'] || row['Direction'] || '정보없음',
+                    '주요편의시설': row['주요편의시설'] || row['facilities'] || row['Facilities'] || '편의점',
+                    '전화번호': row['전화번호'] || row['phone'] || row['Phone'] || '정보없음',
+                    '데이터기준일': row['데이터기준일'] || row['date'] || row['Date'] || '2024-01-01',
+                    '프랜차이즈매장': row['프랜차이즈매장'] || row['franchise'] || row['Franchise'] || ''
+                };
+                
+                restAreaData.push(standardizedRow);
+                validCount++;
+                
             } catch (e) {
-                // 무시
+                invalidCount++;
+                if (index < 5) {
+                    console.warn(`행 ${index + 1} 파싱 에러:`, e.message);
+                }
             }
         });
 
         hideLoadingSpinner();
         
+        console.log('데이터 로드 결과:', {
+            source: dataSource,
+            total: parsedData.length,
+            valid: validCount,
+            invalid: invalidCount,
+            availableColumns: Array.from(missingColumns).slice(0, 10)
+        });
+        
         if (restAreaData.length === 0) {
-            throw new Error('유효한 휴게소 데이터가 없습니다.');
+            throw new Error(`유효한 휴게소 데이터가 없습니다. 파일에서 발견된 컬럼: ${Array.from(missingColumns).slice(0, 5).join(', ')}`);
         }
         
-        showFloatingMessage(`🎉 실제 휴게소 데이터 ${validCount}개를 성공적으로 로드했습니다!`, 'success', 4000);
+        showFloatingMessage(`🎉 ${dataSource} 파일에서 휴게소 데이터 ${validCount}개를 성공적으로 로드했습니다!`, 'success', 4000);
         
     } catch (error) {
         hideLoadingSpinner();
+        console.error('데이터 로드 에러:', error);
         
         const sampleData = getSampleRestAreaData();
         restAreaData = sampleData.map(row => ({
@@ -848,7 +894,7 @@ async function loadRestAreaData() {
             '프랜차이즈매장': row['프랜차이즈매장']
         }));
         
-        showFloatingMessage(`⚠️ 실제 파일을 찾을 수 없어 샘플 데이터(${restAreaData.length}개)를 사용합니다.`, 'error', 5000);
+        showFloatingMessage(`⚠️ 실제 파일 데이터를 로드할 수 없어 샘플 데이터(${restAreaData.length}개)를 사용합니다. 에러: ${error.message}`, 'error', 7000);
     }
 }
 
@@ -1072,38 +1118,114 @@ function parseCSVData(csvText) {
     return result;
 }
 
-// XLSX 데이터 파싱 함수
+// XLSX 데이터 파싱 함수 (강화된 버전)
 function parseXLSXData(xlsxBuffer) {
     try {
-        const workbook = XLSX.read(xlsxBuffer, { type: 'array' });
+        console.log('XLSX 파일 크기:', xlsxBuffer.length, '바이트');
+        
+        const workbook = XLSX.read(xlsxBuffer, { 
+            type: 'array',
+            cellStyles: true,
+            cellFormulas: true,
+            cellDates: true,
+            cellNF: true,
+            sheetStubs: true
+        });
+        
+        console.log('워크북 시트 개수:', workbook.SheetNames.length);
+        console.log('시트 이름들:', workbook.SheetNames);
+        
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-            header: 1,
-            defval: ''
-        });
+        console.log('시트 범위:', worksheet['!ref']);
         
-        if (jsonData.length === 0) {
-            throw new Error('XLSX 파일이 비어있습니다.');
+        // 다양한 방법으로 데이터 추출 시도
+        let jsonData = [];
+        
+        try {
+            // 방법 1: 기본 방법
+            jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                header: 1,
+                defval: '',
+                raw: false,
+                dateNF: 'yyyy-mm-dd'
+            });
+            console.log('방법 1 성공: 총', jsonData.length, '행');
+        } catch (e1) {
+            console.warn('방법 1 실패:', e1.message);
+            
+            try {
+                // 방법 2: 객체 형태로 직접
+                jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+                    defval: '',
+                    raw: false
+                });
+                console.log('방법 2 성공: 총', jsonData.length, '행 (객체 형태)');
+                
+                // 객체를 배열로 변환
+                if (jsonData.length > 0) {
+                    const headers = Object.keys(jsonData[0]);
+                    const arrayData = [headers];
+                    jsonData.forEach(row => {
+                        arrayData.push(headers.map(header => row[header] || ''));
+                    });
+                    jsonData = arrayData;
+                }
+            } catch (e2) {
+                console.warn('방법 2 실패:', e2.message);
+                
+                // 방법 3: 수동 셀 읽기
+                const range = XLSX.utils.decode_range(worksheet['!ref']);
+                jsonData = [];
+                for (let R = range.s.r; R <= range.e.r; ++R) {
+                    const row = [];
+                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+                        const cell = worksheet[cellAddress];
+                        row.push(cell ? (cell.v || '') : '');
+                    }
+                    jsonData.push(row);
+                }
+                console.log('방법 3 성공: 총', jsonData.length, '행 (수동 읽기)');
+            }
         }
         
+        if (jsonData.length === 0) {
+            throw new Error('데이터를 추출할 수 없습니다.');
+        }
+        
+        console.log('첫 5행 데이터:');
+        jsonData.slice(0, 5).forEach((row, index) => {
+            console.log(`행 ${index + 1}:`, row);
+        });
+        
+        // 헤더가 첫 번째 행인지 확인
         const headers = jsonData[0];
+        console.log('헤더:', headers);
+        
+        // 객체 형태로 변환
         const result = [];
         for (let i = 1; i < jsonData.length; i++) {
-            const rowArray = jsonData[i];
-            if (rowArray && rowArray.length > 0) {
-                const rowObject = {};
-                headers.forEach((header, index) => {
-                    rowObject[header] = rowArray[index] || '';
-                });
-                result.push(rowObject);
-            }
+            const row = {};
+            headers.forEach((header, index) => {
+                if (header) {
+                    row[String(header).trim()] = jsonData[i][index] || '';
+                }
+            });
+            result.push(row);
+        }
+        
+        console.log('변환된 객체 개수:', result.length);
+        if (result.length > 0) {
+            console.log('첫 번째 객체:', result[0]);
+            console.log('첫 번째 객체 키들:', Object.keys(result[0]));
         }
         
         return result;
         
     } catch (error) {
+        console.error('XLSX 파싱 상세 에러:', error);
         throw new Error(`XLSX 파일 파싱 실패: ${error.message}`);
     }
 }

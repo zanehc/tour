@@ -1,4 +1,6 @@
-// 시군구 개수에 따른 동적 높이 계산
+// 파일 시스템 API 사용 가능 여부 체크
+function isFileSystemAvailable() {// 지도 초기화
+function initializeMap() {// 시군구 개수에 따른 동적 높이 계산
 function calculateDistrictsContainerHeight(districtCount) {// 전역 변수
 let map;
 let geojsonLayer;
@@ -289,8 +291,42 @@ const KOREA_ADMINISTRATIVE_DIVISIONS = {
     }}
 };
 
-// 파일 시스템 API 사용 가능 여부 체크
-function isFileSystemAvailable() {
+// DOM이 완전히 준비되었는지 확인하는 함수
+function waitForDOMReady() {
+    return new Promise((resolve) => {
+        if (document.readyState === 'complete') {
+            resolve();
+        } else {
+            const checkReady = () => {
+                if (document.readyState === 'complete') {
+                    resolve();
+                } else {
+                    setTimeout(checkReady, 50);
+                }
+            };
+            checkReady();
+        }
+    });
+}
+
+// 지도 컨테이너가 준비될 때까지 대기하는 함수
+async function waitForMapContainer(maxWait = 5000) {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWait) {
+        const mapContainer = document.getElementById('map');
+        if (mapContainer && mapContainer.offsetParent !== null) {
+            const style = window.getComputedStyle(mapContainer);
+            if (style.display !== 'none' && style.visibility !== 'hidden') {
+                console.log('지도 컨테이너 준비 완료');
+                return mapContainer;
+            }
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    throw new Error('지도 컨테이너를 찾을 수 없습니다.');
+}
     return typeof window !== 'undefined' && 
            window.fs && 
            typeof window.fs.readFile === 'function';
@@ -388,18 +424,76 @@ function showDistrictsContainer(rowIndex, caller = '') {
     return true;
 }
 
-// 지도 초기화
-function initializeMap() {
+// 지도 초기화 재시도 함수
+async function initializeMapWithRetry(maxRetries = 3, delay = 1000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        console.log(`지도 초기화 시도 ${attempt}/${maxRetries}`);
+        
+        try {
+            const success = await initializeMap();
+            if (success) {
+                console.log(`✅ 지도 초기화 성공 (${attempt}번째 시도)`);
+                return true;
+            }
+        } catch (error) {
+            console.error(`시도 ${attempt} 실패:`, error.message);
+        }
+        
+        if (attempt < maxRetries) {
+            console.log(`❌ 지도 초기화 실패 - ${delay}ms 후 재시도...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 1.5; // 점진적으로 지연 시간 증가
+        }
+    }
+    
+    console.error('❌ 모든 지도 초기화 시도 실패');
+    return false;
+}
     try {
+        // DOM 요소 존재 확인
+        const mapContainer = document.getElementById('map');
+        if (!mapContainer) {
+            console.error('지도 컨테이너 #map을 찾을 수 없습니다.');
+            return false;
+        }
+        
+        console.log('지도 컨테이너 발견:', mapContainer);
+        console.log('컨테이너 크기:', mapContainer.offsetWidth, 'x', mapContainer.offsetHeight);
+        
+        // 기존 지도 인스턴스 제거
         if (map) { 
+            console.log('기존 지도 인스턴스 제거');
             map.remove(); 
         }
+        
+        // 컨테이너가 보이는지 확인
+        const containerStyle = window.getComputedStyle(mapContainer);
+        console.log('컨테이너 display:', containerStyle.display);
+        console.log('컨테이너 visibility:', containerStyle.visibility);
+        
+        // 컨테이너가 숨겨져 있다면 강제로 보이게 설정
+        if (containerStyle.display === 'none' || containerStyle.visibility === 'hidden') {
+            console.warn('지도 컨테이너가 숨겨져 있습니다. 강제로 표시합니다.');
+            mapContainer.style.display = 'block';
+            mapContainer.style.visibility = 'visible';
+        }
+        
+        // 최소 크기 보장
+        if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
+            console.warn('지도 컨테이너 크기가 0입니다. 최소 크기를 설정합니다.');
+            mapContainer.style.width = '100%';
+            mapContainer.style.height = '400px';
+        }
+        
+        console.log('지도 초기화 시작...');
         
         map = L.map('map', {
             center: [36.5, 127.5],
             zoom: 7,
             zoomControl: false
         });
+        
+        console.log('지도 인스턴스 생성 완료');
         
         L.control.zoom({
             position: 'topright'
@@ -411,19 +505,27 @@ function initializeMap() {
             minZoom: 5
         }).addTo(map);
         
+        console.log('타일 레이어 추가 완료');
+        
         geojsonLayer = L.layerGroup().addTo(map);
         restAreaLayer = L.layerGroup().addTo(map);
         
+        console.log('레이어 그룹 생성 완료');
+        
+        // 지도 크기 재조정
         setTimeout(() => {
             if (map) {
+                console.log('지도 크기 재조정');
                 map.invalidateSize();
             }
         }, 200);
         
+        console.log('✅ 지도 초기화 성공');
         return true;
+        
     } catch (error) {
         console.error('지도 초기화 실패:', error);
-        showFloatingMessage('지도 초기화에 실패했습니다.', 'error');
+        showFloatingMessage('지도 초기화에 실패했습니다. 페이지를 새로고침해 주세요.', 'error');
         return false;
     }
 }
@@ -2015,90 +2117,112 @@ function createRestAreaPopup(restArea) {
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM 로드 이벤트 발생');
+    console.log('Document readyState:', document.readyState);
+    
+    // DOM이 완전히 준비될 때까지 대기
+    await waitForDOMReady();
+    console.log('DOM 완전 준비 완료');
+    
     if (typeof L === 'undefined') {
+        console.error('Leaflet 라이브러리가 로드되지 않았습니다.');
         showFloatingMessage('지도 라이브러리 로딩 실패. 페이지를 새로고침해 주세요.', 'error');
         return;
     }
     
-    if (!initializeMap()) {
-        return;
-    }
+    console.log('Leaflet 라이브러리 확인 완료');
     
-    handleResize();
-    loadProvinces();
-    
-    // 파일 시스템 API 로드 대기
-    console.log('파일 시스템 API 확인 중...');
-    showFloatingMessage('📁 파일 시스템을 준비하는 중...', 'loading');
-    
-    try {
-        if (!isFileSystemAvailable()) {
-            console.log('파일 시스템 API를 기다리는 중...');
-            await waitForFileSystem(10000); // 10초 대기
+    // CSS와 레이아웃이 완전히 적용될 때까지 추가 대기
+    setTimeout(async () => {
+        console.log('지도 초기화 프로세스 시작...');
+        
+        const mapInitialized = await initializeMapWithRetry(5, 1000); // 5번 재시도, 1초 간격
+        if (!mapInitialized) {
+            console.error('지도 초기화 최종 실패 - 앱 종료');
+            showFloatingMessage('❌ 지도를 초기화할 수 없습니다. 페이지를 새로고침해 주세요.', 'error');
+            return;
         }
-        console.log('✅ 파일 시스템 API 사용 가능');
         
-        // 기존 메시지 제거
-        const existingMsg = document.querySelector('.floating-message');
-        if (existingMsg) existingMsg.remove();
+        console.log('기본 UI 로드...');
+        handleResize();
+        loadProvinces();
         
-        // 데이터 로드 시작
-        const loadingPromises = [
-            loadSigunguGeoJson(),
-            loadRestAreaData()
-        ];
-        
-        await Promise.all(loadingPromises);
-        
-        if (!restAreaData || restAreaData.length === 0) {
-            console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다.');
-        }
-
-        try {
-            const locationDetected = await autoDetectLocationAndZoom();
-            if (!locationDetected) {
-                selectAdministrativeDivision('전국');
-            }
-        } catch (error) {
-            selectAdministrativeDivision('전국');
-        }
-
-        if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
-            showRestAreas();
-        }
-
-        showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
-        
-    } catch (fsError) {
-        console.error('파일 시스템 로드 실패:', fsError.message);
-        
-        // 기존 메시지 제거
-        const existingMsg = document.querySelector('.floating-message');
-        if (existingMsg) existingMsg.remove();
-        
-        // 샘플 데이터로 진행
-        console.log('샘플 데이터로 앱 초기화...');
+        // 파일 시스템 API 로드 대기
+        console.log('파일 시스템 API 확인 중...');
+        showFloatingMessage('📁 파일 시스템을 준비하는 중...', 'loading');
         
         try {
-            const locationDetected = await autoDetectLocationAndZoom();
-            if (!locationDetected) {
+            if (!isFileSystemAvailable()) {
+                console.log('파일 시스템 API를 기다리는 중...');
+                await waitForFileSystem(10000); // 10초 대기
+            }
+            console.log('✅ 파일 시스템 API 사용 가능');
+            
+            // 기존 메시지 제거
+            const existingMsg = document.querySelector('.floating-message');
+            if (existingMsg) existingMsg.remove();
+            
+            // 데이터 로드 시작
+            const loadingPromises = [
+                loadSigunguGeoJson(),
+                loadRestAreaData()
+            ];
+            
+            await Promise.all(loadingPromises);
+            
+            if (!restAreaData || restAreaData.length === 0) {
+                console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다.');
+            }
+
+            try {
+                const locationDetected = await autoDetectLocationAndZoom();
+                if (!locationDetected) {
+                    selectAdministrativeDivision('전국');
+                }
+            } catch (error) {
                 selectAdministrativeDivision('전국');
             }
-        } catch (error) {
-            selectAdministrativeDivision('전국');
+
+            if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+                showRestAreas();
+            }
+
+            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
+            
+        } catch (fsError) {
+            console.error('파일 시스템 로드 실패:', fsError.message);
+            
+            // 기존 메시지 제거
+            const existingMsg = document.querySelector('.floating-message');
+            if (existingMsg) existingMsg.remove();
+            
+            // 샘플 데이터로 진행
+            console.log('샘플 데이터로 앱 초기화...');
+            
+            try {
+                const locationDetected = await autoDetectLocationAndZoom();
+                if (!locationDetected) {
+                    selectAdministrativeDivision('전국');
+                }
+            } catch (error) {
+                selectAdministrativeDivision('전국');
+            }
+            
+            // 휴게소 데이터 강제 로드 (샘플 데이터)
+            await loadRestAreaData();
+            
+            if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+                showRestAreas();
+            }
+            
+            showFloatingMessage('📁 파일 시스템을 사용할 수 없어 샘플 데이터로 실행합니다.', 'error', 5000);
         }
         
-        // 휴게소 데이터 강제 로드 (샘플 데이터)
-        await loadRestAreaData();
-        
-        if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
-            showRestAreas();
+        if (window.innerWidth <= 768) {
+            toggleSidebar(); 
         }
         
-        showFloatingMessage('📁 파일 시스템을 사용할 수 없어 샘플 데이터로 실행합니다.', 'error', 5000);
-    }
-    
-    if (window.innerWidth <= 768) {
-        toggleSidebar(); 
-    }
+        console.log('앱 초기화 완료');
+        
+    }, 500); // 500ms 추가 대기
 });

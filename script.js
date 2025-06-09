@@ -1,7 +1,4 @@
-// 파일 시스템 API 사용 가능 여부 체크
-function isFileSystemAvailable() {// 지도 초기화
-function initializeMap() {// 시군구 개수에 따른 동적 높이 계산
-function calculateDistrictsContainerHeight(districtCount) {// 전역 변수
+// 전역 변수
 let map;
 let geojsonLayer;
 let restAreaLayer;
@@ -291,60 +288,8 @@ const KOREA_ADMINISTRATIVE_DIVISIONS = {
     }}
 };
 
-// DOM이 완전히 준비되었는지 확인하는 함수
-function waitForDOMReady() {
-    return new Promise((resolve) => {
-        if (document.readyState === 'complete') {
-            resolve();
-        } else {
-            const checkReady = () => {
-                if (document.readyState === 'complete') {
-                    resolve();
-                } else {
-                    setTimeout(checkReady, 50);
-                }
-            };
-            checkReady();
-        }
-    });
-}
-
-// 지도 컨테이너가 준비될 때까지 대기하는 함수
-async function waitForMapContainer(maxWait = 5000) {
-    const startTime = Date.now();
-    
-    while (Date.now() - startTime < maxWait) {
-        const mapContainer = document.getElementById('map');
-        if (mapContainer && mapContainer.offsetParent !== null) {
-            const style = window.getComputedStyle(mapContainer);
-            if (style.display !== 'none' && style.visibility !== 'hidden') {
-                console.log('지도 컨테이너 준비 완료');
-                return mapContainer;
-            }
-        }
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    throw new Error('지도 컨테이너를 찾을 수 없습니다.');
-}
-    return typeof window !== 'undefined' && 
-           window.fs && 
-           typeof window.fs.readFile === 'function';
-}
-
-// 파일 시스템 API가 로드될 때까지 대기
-async function waitForFileSystem(maxWaitTime = 5000) {
-    const startTime = Date.now();
-    
-    while (!isFileSystemAvailable()) {
-        if (Date.now() - startTime > maxWaitTime) {
-            throw new Error('파일 시스템 API를 로드할 수 없습니다.');
-        }
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    
-    return true;
-}
+// 시군구 개수에 따른 동적 높이 계산
+function calculateDistrictsContainerHeight(districtCount) {
     const allDistrictBtnHeight = 50;
     const buttonHeight = 34;
     const gap = 6;
@@ -424,76 +369,18 @@ function showDistrictsContainer(rowIndex, caller = '') {
     return true;
 }
 
-// 지도 초기화 재시도 함수
-async function initializeMapWithRetry(maxRetries = 3, delay = 1000) {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        console.log(`지도 초기화 시도 ${attempt}/${maxRetries}`);
-        
-        try {
-            const success = await initializeMap();
-            if (success) {
-                console.log(`✅ 지도 초기화 성공 (${attempt}번째 시도)`);
-                return true;
-            }
-        } catch (error) {
-            console.error(`시도 ${attempt} 실패:`, error.message);
-        }
-        
-        if (attempt < maxRetries) {
-            console.log(`❌ 지도 초기화 실패 - ${delay}ms 후 재시도...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 1.5; // 점진적으로 지연 시간 증가
-        }
-    }
-    
-    console.error('❌ 모든 지도 초기화 시도 실패');
-    return false;
-}
+// 지도 초기화
+function initializeMap() {
     try {
-        // DOM 요소 존재 확인
-        const mapContainer = document.getElementById('map');
-        if (!mapContainer) {
-            console.error('지도 컨테이너 #map을 찾을 수 없습니다.');
-            return false;
-        }
-        
-        console.log('지도 컨테이너 발견:', mapContainer);
-        console.log('컨테이너 크기:', mapContainer.offsetWidth, 'x', mapContainer.offsetHeight);
-        
-        // 기존 지도 인스턴스 제거
         if (map) { 
-            console.log('기존 지도 인스턴스 제거');
             map.remove(); 
         }
-        
-        // 컨테이너가 보이는지 확인
-        const containerStyle = window.getComputedStyle(mapContainer);
-        console.log('컨테이너 display:', containerStyle.display);
-        console.log('컨테이너 visibility:', containerStyle.visibility);
-        
-        // 컨테이너가 숨겨져 있다면 강제로 보이게 설정
-        if (containerStyle.display === 'none' || containerStyle.visibility === 'hidden') {
-            console.warn('지도 컨테이너가 숨겨져 있습니다. 강제로 표시합니다.');
-            mapContainer.style.display = 'block';
-            mapContainer.style.visibility = 'visible';
-        }
-        
-        // 최소 크기 보장
-        if (mapContainer.offsetWidth === 0 || mapContainer.offsetHeight === 0) {
-            console.warn('지도 컨테이너 크기가 0입니다. 최소 크기를 설정합니다.');
-            mapContainer.style.width = '100%';
-            mapContainer.style.height = '400px';
-        }
-        
-        console.log('지도 초기화 시작...');
         
         map = L.map('map', {
             center: [36.5, 127.5],
             zoom: 7,
             zoomControl: false
         });
-        
-        console.log('지도 인스턴스 생성 완료');
         
         L.control.zoom({
             position: 'topright'
@@ -505,27 +392,19 @@ async function initializeMapWithRetry(maxRetries = 3, delay = 1000) {
             minZoom: 5
         }).addTo(map);
         
-        console.log('타일 레이어 추가 완료');
-        
         geojsonLayer = L.layerGroup().addTo(map);
         restAreaLayer = L.layerGroup().addTo(map);
         
-        console.log('레이어 그룹 생성 완료');
-        
-        // 지도 크기 재조정
         setTimeout(() => {
             if (map) {
-                console.log('지도 크기 재조정');
                 map.invalidateSize();
             }
         }, 200);
         
-        console.log('✅ 지도 초기화 성공');
         return true;
-        
     } catch (error) {
         console.error('지도 초기화 실패:', error);
-        showFloatingMessage('지도 초기화에 실패했습니다. 페이지를 새로고침해 주세요.', 'error');
+        showFloatingMessage('지도 초기화에 실패했습니다.', 'error');
         return false;
     }
 }
@@ -875,33 +754,17 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 async function loadSigunguGeoJson() {
     showLoadingSpinner('행정구역 경계 데이터를 불러오는 중...');
     try {
-        // 파일 시스템 API 사용 가능 여부 체크
-        if (!isFileSystemAvailable()) {
-            console.warn('파일 시스템 API를 사용할 수 없습니다. 기다리는 중...');
-            try {
-                await waitForFileSystem();
-                console.log('파일 시스템 API 로드 완료');
-            } catch (waitError) {
-                console.error('파일 시스템 API 로드 실패:', waitError.message);
-                throw new Error('파일 시스템 API를 사용할 수 없습니다.');
-            }
-        }
-        
         let geoJsonText;
         try {
             geoJsonText = await window.fs.readFile('sigun_boundraies.json', { encoding: 'utf8' });
-            console.log('GeoJSON 파일 로드 성공');
         } catch (error) {
-            console.warn('GeoJSON 파일 로드 실패:', error.message);
             throw new Error('행정구역 경계 파일을 읽을 수 없습니다.');
         }
         
         sigunguGeoJsonData = JSON.parse(geoJsonText);
         hideLoadingSpinner();
-        console.log('GeoJSON 데이터 파싱 성공');
     } catch (error) {
         hideLoadingSpinner();
-        console.error('GeoJSON 로드 에러:', error.message);
         showFloatingMessage('행정구역 경계 데이터를 불러오지 못했습니다.', 'error', 5000);
     }
 }
@@ -911,124 +774,64 @@ async function loadRestAreaData() {
     try {
         showLoadingSpinner('휴게소 데이터를 불러오는 중...');
         
-        // 파일 시스템 API 사용 가능 여부 체크
-        if (!isFileSystemAvailable()) {
-            console.warn('파일 시스템 API를 사용할 수 없습니다. 기다리는 중...');
-            try {
-                await waitForFileSystem();
-                console.log('파일 시스템 API 로드 완료');
-            } catch (waitError) {
-                console.error('파일 시스템 API 로드 실패:', waitError.message);
-                throw new Error('파일 시스템 API를 사용할 수 없습니다. 샘플 데이터를 사용합니다.');
-            }
-        }
-        
         let parsedData = null;
-        let dataSource = '';
         
         try {
-            console.log('XLSX 파일 로드 시도...');
             const xlsxBuffer = await window.fs.readFile('data_ex.xlsx');
-            console.log('XLSX 파일 크기:', xlsxBuffer.length, '바이트');
             parsedData = parseXLSXData(xlsxBuffer);
-            dataSource = 'XLSX';
-            console.log('XLSX 파싱 완료, 행 수:', parsedData.length);
         } catch (xlsxError) {
-            console.warn('XLSX 파일 로드 실패:', xlsxError.message);
             try {
-                console.log('CSV 파일 로드 시도...');
                 const csvText = await window.fs.readFile('data_ex.csv', { encoding: 'utf8' });
-                console.log('CSV 파일 크기:', csvText.length, '문자');
                 parsedData = parseCSVData(csvText);
-                dataSource = 'CSV';
-                console.log('CSV 파싱 완료, 행 수:', parsedData.length);
             } catch (csvError) {
-                console.warn('CSV 파일 로드 실패:', csvError.message);
                 throw new Error('실제 데이터 파일을 찾을 수 없습니다.');
             }
         }
         
         restAreaData = [];
         let validCount = 0;
-        let invalidCount = 0;
-        let missingColumns = new Set();
         
-        console.log('원본 데이터 샘플:', parsedData.slice(0, 3));
-        
-        parsedData.forEach((row, index) => {
+        parsedData.forEach((row) => {
             try {
-                // 다양한 컬럼명 시도
-                const lat = parseFloat(
-                    row['위도'] || row['lat'] || row['latitude'] || 
-                    row['Latitude'] || row['LAT'] || row['y'] || row['Y']
-                );
-                const lng = parseFloat(
-                    row['경도'] || row['lng'] || row['longitude'] || 
-                    row['Longitude'] || row['LNG'] || row['x'] || row['X']
-                );
+                const lat = parseFloat(row['위도'] || row['lat'] || row['latitude']);
+                const lng = parseFloat(row['경도'] || row['lng'] || row['longitude']);
                 
-                if (isNaN(lat) || isNaN(lng)) {
-                    invalidCount++;
-                    if (index < 5) { // 처음 5개 행만 로깅
-                        console.log(`행 ${index + 1} - 좌표 누락:`, {
-                            availableKeys: Object.keys(row),
-                            lat: row['위도'] || row['lat'] || row['latitude'],
-                            lng: row['경도'] || row['lng'] || row['longitude']
-                        });
-                        Object.keys(row).forEach(key => missingColumns.add(key));
-                    }
-                    return;
+                if (!isNaN(lat) && !isNaN(lng) && 
+                    lat >= 33 && lat <= 39 && 
+                    lng >= 124 && lng <= 132) {
+                    
+                    const standardizedRow = {
+                        '휴게소명': row['휴게소명'] || '',
+                        '고속도로': row['고속도로'] || '',
+                        '위도': lat,
+                        '경도': lng,
+                        '휴게소종류': row['휴게소종류'] || '',
+                        '운영시간': row['운영시간'] || '',
+                        '방향': row['방향'] || '',
+                        '주요편의시설': row['주요편의시설'] || '',
+                        '전화번호': row['전화번호'] || '',
+                        '데이터기준일': row['데이터기준일'] || '',
+                        '프랜차이즈매장': row['프랜차이즈매장'] || ''
+                    };
+                    
+                    restAreaData.push(standardizedRow);
+                    validCount++;
                 }
-                
-                if (lat < 33 || lat > 39 || lng < 124 || lng > 132) {
-                    invalidCount++;
-                    return;
-                }
-                
-                const standardizedRow = {
-                    '휴게소명': row['휴게소명'] || row['name'] || row['Name'] || row['명칭'] || `휴게소${index + 1}`,
-                    '고속도로': row['고속도로'] || row['highway'] || row['Highway'] || row['도로명'] || '정보없음',
-                    '위도': lat,
-                    '경도': lng,
-                    '휴게소종류': row['휴게소종류'] || row['type'] || row['Type'] || '일반형',
-                    '운영시간': row['운영시간'] || row['hours'] || row['Hours'] || '24시간',
-                    '방향': row['방향'] || row['direction'] || row['Direction'] || '정보없음',
-                    '주요편의시설': row['주요편의시설'] || row['facilities'] || row['Facilities'] || '편의점',
-                    '전화번호': row['전화번호'] || row['phone'] || row['Phone'] || '정보없음',
-                    '데이터기준일': row['데이터기준일'] || row['date'] || row['Date'] || '2024-01-01',
-                    '프랜차이즈매장': row['프랜차이즈매장'] || row['franchise'] || row['Franchise'] || ''
-                };
-                
-                restAreaData.push(standardizedRow);
-                validCount++;
-                
             } catch (e) {
-                invalidCount++;
-                if (index < 5) {
-                    console.warn(`행 ${index + 1} 파싱 에러:`, e.message);
-                }
+                // 무시
             }
         });
 
         hideLoadingSpinner();
         
-        console.log('데이터 로드 결과:', {
-            source: dataSource,
-            total: parsedData.length,
-            valid: validCount,
-            invalid: invalidCount,
-            availableColumns: Array.from(missingColumns).slice(0, 10)
-        });
-        
         if (restAreaData.length === 0) {
-            throw new Error(`유효한 휴게소 데이터가 없습니다. 파일에서 발견된 컬럼: ${Array.from(missingColumns).slice(0, 5).join(', ')}`);
+            throw new Error('유효한 휴게소 데이터가 없습니다.');
         }
         
-        showFloatingMessage(`🎉 ${dataSource} 파일에서 휴게소 데이터 ${validCount}개를 성공적으로 로드했습니다!`, 'success', 4000);
+        showFloatingMessage(`🎉 실제 휴게소 데이터 ${validCount}개를 성공적으로 로드했습니다!`, 'success', 4000);
         
     } catch (error) {
         hideLoadingSpinner();
-        console.error('데이터 로드 에러:', error);
         
         const sampleData = getSampleRestAreaData();
         restAreaData = sampleData.map(row => ({
@@ -1045,8 +848,7 @@ async function loadRestAreaData() {
             '프랜차이즈매장': row['프랜차이즈매장']
         }));
         
-        console.log('샘플 데이터로 대체:', restAreaData.length, '개');
-        showFloatingMessage(`⚠️ 실제 파일 데이터를 로드할 수 없어 샘플 데이터(${restAreaData.length}개)를 사용합니다. 에러: ${error.message}`, 'error', 7000);
+        showFloatingMessage(`⚠️ 실제 파일을 찾을 수 없어 샘플 데이터(${restAreaData.length}개)를 사용합니다.`, 'error', 5000);
     }
 }
 
@@ -1270,114 +1072,38 @@ function parseCSVData(csvText) {
     return result;
 }
 
-// XLSX 데이터 파싱 함수 (강화된 버전)
+// XLSX 데이터 파싱 함수
 function parseXLSXData(xlsxBuffer) {
     try {
-        console.log('XLSX 파일 크기:', xlsxBuffer.length, '바이트');
-        
-        const workbook = XLSX.read(xlsxBuffer, { 
-            type: 'array',
-            cellStyles: true,
-            cellFormulas: true,
-            cellDates: true,
-            cellNF: true,
-            sheetStubs: true
-        });
-        
-        console.log('워크북 시트 개수:', workbook.SheetNames.length);
-        console.log('시트 이름들:', workbook.SheetNames);
-        
+        const workbook = XLSX.read(xlsxBuffer, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        console.log('시트 범위:', worksheet['!ref']);
-        
-        // 다양한 방법으로 데이터 추출 시도
-        let jsonData = [];
-        
-        try {
-            // 방법 1: 기본 방법
-            jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                header: 1,
-                defval: '',
-                raw: false,
-                dateNF: 'yyyy-mm-dd'
-            });
-            console.log('방법 1 성공: 총', jsonData.length, '행');
-        } catch (e1) {
-            console.warn('방법 1 실패:', e1.message);
-            
-            try {
-                // 방법 2: 객체 형태로 직접
-                jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-                    defval: '',
-                    raw: false
-                });
-                console.log('방법 2 성공: 총', jsonData.length, '행 (객체 형태)');
-                
-                // 객체를 배열로 변환
-                if (jsonData.length > 0) {
-                    const headers = Object.keys(jsonData[0]);
-                    const arrayData = [headers];
-                    jsonData.forEach(row => {
-                        arrayData.push(headers.map(header => row[header] || ''));
-                    });
-                    jsonData = arrayData;
-                }
-            } catch (e2) {
-                console.warn('방법 2 실패:', e2.message);
-                
-                // 방법 3: 수동 셀 읽기
-                const range = XLSX.utils.decode_range(worksheet['!ref']);
-                jsonData = [];
-                for (let R = range.s.r; R <= range.e.r; ++R) {
-                    const row = [];
-                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                        const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
-                        const cell = worksheet[cellAddress];
-                        row.push(cell ? (cell.v || '') : '');
-                    }
-                    jsonData.push(row);
-                }
-                console.log('방법 3 성공: 총', jsonData.length, '행 (수동 읽기)');
-            }
-        }
-        
-        if (jsonData.length === 0) {
-            throw new Error('데이터를 추출할 수 없습니다.');
-        }
-        
-        console.log('첫 5행 데이터:');
-        jsonData.slice(0, 5).forEach((row, index) => {
-            console.log(`행 ${index + 1}:`, row);
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1,
+            defval: ''
         });
         
-        // 헤더가 첫 번째 행인지 확인
-        const headers = jsonData[0];
-        console.log('헤더:', headers);
-        
-        // 객체 형태로 변환
-        const result = [];
-        for (let i = 1; i < jsonData.length; i++) {
-            const row = {};
-            headers.forEach((header, index) => {
-                if (header) {
-                    row[String(header).trim()] = jsonData[i][index] || '';
-                }
-            });
-            result.push(row);
+        if (jsonData.length === 0) {
+            throw new Error('XLSX 파일이 비어있습니다.');
         }
         
-        console.log('변환된 객체 개수:', result.length);
-        if (result.length > 0) {
-            console.log('첫 번째 객체:', result[0]);
-            console.log('첫 번째 객체 키들:', Object.keys(result[0]));
+        const headers = jsonData[0];
+        const result = [];
+        for (let i = 1; i < jsonData.length; i++) {
+            const rowArray = jsonData[i];
+            if (rowArray && rowArray.length > 0) {
+                const rowObject = {};
+                headers.forEach((header, index) => {
+                    rowObject[header] = rowArray[index] || '';
+                });
+                result.push(rowObject);
+            }
         }
         
         return result;
         
     } catch (error) {
-        console.error('XLSX 파싱 상세 에러:', error);
         throw new Error(`XLSX 파일 파싱 실패: ${error.message}`);
     }
 }
@@ -2117,112 +1843,45 @@ function createRestAreaPopup(restArea) {
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('DOM 로드 이벤트 발생');
-    console.log('Document readyState:', document.readyState);
-    
-    // DOM이 완전히 준비될 때까지 대기
-    await waitForDOMReady();
-    console.log('DOM 완전 준비 완료');
-    
     if (typeof L === 'undefined') {
-        console.error('Leaflet 라이브러리가 로드되지 않았습니다.');
         showFloatingMessage('지도 라이브러리 로딩 실패. 페이지를 새로고침해 주세요.', 'error');
         return;
     }
     
-    console.log('Leaflet 라이브러리 확인 완료');
+    if (!initializeMap()) {
+        return;
+    }
     
-    // CSS와 레이아웃이 완전히 적용될 때까지 추가 대기
-    setTimeout(async () => {
-        console.log('지도 초기화 프로세스 시작...');
-        
-        const mapInitialized = await initializeMapWithRetry(5, 1000); // 5번 재시도, 1초 간격
-        if (!mapInitialized) {
-            console.error('지도 초기화 최종 실패 - 앱 종료');
-            showFloatingMessage('❌ 지도를 초기화할 수 없습니다. 페이지를 새로고침해 주세요.', 'error');
-            return;
-        }
-        
-        console.log('기본 UI 로드...');
-        handleResize();
-        loadProvinces();
-        
-        // 파일 시스템 API 로드 대기
-        console.log('파일 시스템 API 확인 중...');
-        showFloatingMessage('📁 파일 시스템을 준비하는 중...', 'loading');
-        
-        try {
-            if (!isFileSystemAvailable()) {
-                console.log('파일 시스템 API를 기다리는 중...');
-                await waitForFileSystem(10000); // 10초 대기
-            }
-            console.log('✅ 파일 시스템 API 사용 가능');
-            
-            // 기존 메시지 제거
-            const existingMsg = document.querySelector('.floating-message');
-            if (existingMsg) existingMsg.remove();
-            
-            // 데이터 로드 시작
-            const loadingPromises = [
-                loadSigunguGeoJson(),
-                loadRestAreaData()
-            ];
-            
-            await Promise.all(loadingPromises);
-            
-            if (!restAreaData || restAreaData.length === 0) {
-                console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다.');
-            }
+    handleResize();
+    loadProvinces();
+    
+    const loadingPromises = [
+        loadSigunguGeoJson(),
+        loadRestAreaData()
+    ];
+    
+    await Promise.all(loadingPromises);
+    
+    if (!restAreaData || restAreaData.length === 0) {
+        console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다.');
+    }
 
-            try {
-                const locationDetected = await autoDetectLocationAndZoom();
-                if (!locationDetected) {
-                    selectAdministrativeDivision('전국');
-                }
-            } catch (error) {
-                selectAdministrativeDivision('전국');
-            }
-
-            if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
-                showRestAreas();
-            }
-
-            showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
-            
-        } catch (fsError) {
-            console.error('파일 시스템 로드 실패:', fsError.message);
-            
-            // 기존 메시지 제거
-            const existingMsg = document.querySelector('.floating-message');
-            if (existingMsg) existingMsg.remove();
-            
-            // 샘플 데이터로 진행
-            console.log('샘플 데이터로 앱 초기화...');
-            
-            try {
-                const locationDetected = await autoDetectLocationAndZoom();
-                if (!locationDetected) {
-                    selectAdministrativeDivision('전국');
-                }
-            } catch (error) {
-                selectAdministrativeDivision('전국');
-            }
-            
-            // 휴게소 데이터 강제 로드 (샘플 데이터)
-            await loadRestAreaData();
-            
-            if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
-                showRestAreas();
-            }
-            
-            showFloatingMessage('📁 파일 시스템을 사용할 수 없어 샘플 데이터로 실행합니다.', 'error', 5000);
+    try {
+        const locationDetected = await autoDetectLocationAndZoom();
+        if (!locationDetected) {
+            selectAdministrativeDivision('전국');
         }
-        
-        if (window.innerWidth <= 768) {
-            toggleSidebar(); 
-        }
-        
-        console.log('앱 초기화 완료');
-        
-    }, 500); // 500ms 추가 대기
+    } catch (error) {
+        selectAdministrativeDivision('전국');
+    }
+
+    if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+        showRestAreas();
+    }
+
+    showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
+    
+    if (window.innerWidth <= 768) {
+        toggleSidebar(); 
+    }
 });

@@ -1,4 +1,5 @@
-// 전역 변수
+// 시군구 개수에 따른 동적 높이 계산
+function calculateDistrictsContainerHeight(districtCount) {// 전역 변수
 let map;
 let geojsonLayer;
 let restAreaLayer;
@@ -288,8 +289,26 @@ const KOREA_ADMINISTRATIVE_DIVISIONS = {
     }}
 };
 
-// 시군구 개수에 따른 동적 높이 계산
-function calculateDistrictsContainerHeight(districtCount) {
+// 파일 시스템 API 사용 가능 여부 체크
+function isFileSystemAvailable() {
+    return typeof window !== 'undefined' && 
+           window.fs && 
+           typeof window.fs.readFile === 'function';
+}
+
+// 파일 시스템 API가 로드될 때까지 대기
+async function waitForFileSystem(maxWaitTime = 5000) {
+    const startTime = Date.now();
+    
+    while (!isFileSystemAvailable()) {
+        if (Date.now() - startTime > maxWaitTime) {
+            throw new Error('파일 시스템 API를 로드할 수 없습니다.');
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    return true;
+}
     const allDistrictBtnHeight = 50;
     const buttonHeight = 34;
     const gap = 6;
@@ -754,17 +773,33 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 async function loadSigunguGeoJson() {
     showLoadingSpinner('행정구역 경계 데이터를 불러오는 중...');
     try {
+        // 파일 시스템 API 사용 가능 여부 체크
+        if (!isFileSystemAvailable()) {
+            console.warn('파일 시스템 API를 사용할 수 없습니다. 기다리는 중...');
+            try {
+                await waitForFileSystem();
+                console.log('파일 시스템 API 로드 완료');
+            } catch (waitError) {
+                console.error('파일 시스템 API 로드 실패:', waitError.message);
+                throw new Error('파일 시스템 API를 사용할 수 없습니다.');
+            }
+        }
+        
         let geoJsonText;
         try {
             geoJsonText = await window.fs.readFile('sigun_boundraies.json', { encoding: 'utf8' });
+            console.log('GeoJSON 파일 로드 성공');
         } catch (error) {
+            console.warn('GeoJSON 파일 로드 실패:', error.message);
             throw new Error('행정구역 경계 파일을 읽을 수 없습니다.');
         }
         
         sigunguGeoJsonData = JSON.parse(geoJsonText);
         hideLoadingSpinner();
+        console.log('GeoJSON 데이터 파싱 성공');
     } catch (error) {
         hideLoadingSpinner();
+        console.error('GeoJSON 로드 에러:', error.message);
         showFloatingMessage('행정구역 경계 데이터를 불러오지 못했습니다.', 'error', 5000);
     }
 }
@@ -774,10 +809,23 @@ async function loadRestAreaData() {
     try {
         showLoadingSpinner('휴게소 데이터를 불러오는 중...');
         
+        // 파일 시스템 API 사용 가능 여부 체크
+        if (!isFileSystemAvailable()) {
+            console.warn('파일 시스템 API를 사용할 수 없습니다. 기다리는 중...');
+            try {
+                await waitForFileSystem();
+                console.log('파일 시스템 API 로드 완료');
+            } catch (waitError) {
+                console.error('파일 시스템 API 로드 실패:', waitError.message);
+                throw new Error('파일 시스템 API를 사용할 수 없습니다. 샘플 데이터를 사용합니다.');
+            }
+        }
+        
         let parsedData = null;
         let dataSource = '';
         
         try {
+            console.log('XLSX 파일 로드 시도...');
             const xlsxBuffer = await window.fs.readFile('data_ex.xlsx');
             console.log('XLSX 파일 크기:', xlsxBuffer.length, '바이트');
             parsedData = parseXLSXData(xlsxBuffer);
@@ -786,6 +834,7 @@ async function loadRestAreaData() {
         } catch (xlsxError) {
             console.warn('XLSX 파일 로드 실패:', xlsxError.message);
             try {
+                console.log('CSV 파일 로드 시도...');
                 const csvText = await window.fs.readFile('data_ex.csv', { encoding: 'utf8' });
                 console.log('CSV 파일 크기:', csvText.length, '문자');
                 parsedData = parseCSVData(csvText);
@@ -894,6 +943,7 @@ async function loadRestAreaData() {
             '프랜차이즈매장': row['프랜차이즈매장']
         }));
         
+        console.log('샘플 데이터로 대체:', restAreaData.length, '개');
         showFloatingMessage(`⚠️ 실제 파일 데이터를 로드할 수 없어 샘플 데이터(${restAreaData.length}개)를 사용합니다. 에러: ${error.message}`, 'error', 7000);
     }
 }
@@ -1977,31 +2027,76 @@ document.addEventListener('DOMContentLoaded', async function() {
     handleResize();
     loadProvinces();
     
-    const loadingPromises = [
-        loadSigunguGeoJson(),
-        loadRestAreaData()
-    ];
+    // 파일 시스템 API 로드 대기
+    console.log('파일 시스템 API 확인 중...');
+    showFloatingMessage('📁 파일 시스템을 준비하는 중...', 'loading');
     
-    await Promise.all(loadingPromises);
-    
-    if (!restAreaData || restAreaData.length === 0) {
-        console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다.');
-    }
-
     try {
-        const locationDetected = await autoDetectLocationAndZoom();
-        if (!locationDetected) {
+        if (!isFileSystemAvailable()) {
+            console.log('파일 시스템 API를 기다리는 중...');
+            await waitForFileSystem(10000); // 10초 대기
+        }
+        console.log('✅ 파일 시스템 API 사용 가능');
+        
+        // 기존 메시지 제거
+        const existingMsg = document.querySelector('.floating-message');
+        if (existingMsg) existingMsg.remove();
+        
+        // 데이터 로드 시작
+        const loadingPromises = [
+            loadSigunguGeoJson(),
+            loadRestAreaData()
+        ];
+        
+        await Promise.all(loadingPromises);
+        
+        if (!restAreaData || restAreaData.length === 0) {
+            console.warn('⚠️ 휴게소 데이터가 제대로 로드되지 않았습니다.');
+        }
+
+        try {
+            const locationDetected = await autoDetectLocationAndZoom();
+            if (!locationDetected) {
+                selectAdministrativeDivision('전국');
+            }
+        } catch (error) {
             selectAdministrativeDivision('전국');
         }
-    } catch (error) {
-        selectAdministrativeDivision('전국');
-    }
 
-    if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
-        showRestAreas();
-    }
+        if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+            showRestAreas();
+        }
 
-    showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
+        showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
+        
+    } catch (fsError) {
+        console.error('파일 시스템 로드 실패:', fsError.message);
+        
+        // 기존 메시지 제거
+        const existingMsg = document.querySelector('.floating-message');
+        if (existingMsg) existingMsg.remove();
+        
+        // 샘플 데이터로 진행
+        console.log('샘플 데이터로 앱 초기화...');
+        
+        try {
+            const locationDetected = await autoDetectLocationAndZoom();
+            if (!locationDetected) {
+                selectAdministrativeDivision('전국');
+            }
+        } catch (error) {
+            selectAdministrativeDivision('전국');
+        }
+        
+        // 휴게소 데이터 강제 로드 (샘플 데이터)
+        await loadRestAreaData();
+        
+        if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+            showRestAreas();
+        }
+        
+        showFloatingMessage('📁 파일 시스템을 사용할 수 없어 샘플 데이터로 실행합니다.', 'error', 5000);
+    }
     
     if (window.innerWidth <= 768) {
         toggleSidebar(); 

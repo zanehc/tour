@@ -495,7 +495,8 @@ function moveToMyLocation() {
             if (map) {
                 map.setView([latitude, longitude], 15);
                 
-                clearMapAndBoundaries();
+                // 경계만 클리어하고 테마 데이터는 유지
+                clearBoundariesOnly();
 
                 const currentLocationMarker = L.marker([latitude, longitude], {
                     icon: L.divIcon({
@@ -1311,8 +1312,17 @@ function hideRestAreas() {
 function updateMapDisplay() {
     const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     
+    let locationText = '';
+    if (currentSelectedProvince && currentSelectedDistrict) {
+        locationText = `${currentSelectedProvince} ${currentSelectedDistrict}`;
+    } else if (currentSelectedProvince) {
+        locationText = currentSelectedProvince;
+    } else {
+        locationText = '전국';
+    }
+    
     if (activeThemes.length === 0) {
-        updateCurrentCategoryDisplay('지도 영역을 선택해주세요');
+        updateCurrentCategoryDisplay(`지도 영역: ${locationText}`);
     } else if (activeThemes.length === 1) {
         const themeNames = {
             restarea: '고속도로 휴게소',
@@ -1323,9 +1333,14 @@ function updateMapDisplay() {
             hotplace: '핫플',
             kids: '어린이시설'
         };
-        updateCurrentCategoryDisplay(themeNames[activeThemes[0]]);
+        const themeName = themeNames[activeThemes[0]];
+        if (activeThemes[0] === 'restarea' && restAreaData) {
+            updateCurrentCategoryDisplay(`${themeName} (${restAreaData.length}개) - ${locationText}`);
+        } else {
+            updateCurrentCategoryDisplay(`${themeName} - ${locationText}`);
+        }
     } else {
-        updateCurrentCategoryDisplay(`${activeThemes.length}개 테마 활성화`);
+        updateCurrentCategoryDisplay(`${activeThemes.length}개 테마 활성화 - ${locationText}`);
     }
 }
 
@@ -1336,6 +1351,17 @@ function clearMapAndBoundaries() {
     }
     if (restAreaLayer) {
         restAreaLayer.clearLayers();
+    }
+    if (previousSelectedLayer) {
+        previousSelectedLayer.setStyle(defaultStyle());
+        previousSelectedLayer = null;
+    }
+}
+
+// 행정구역 경계만 클리어 (테마 데이터는 유지)
+function clearBoundariesOnly() {
+    if (geojsonLayer) {
+        geojsonLayer.clearLayers();
     }
     if (previousSelectedLayer) {
         previousSelectedLayer.setStyle(defaultStyle());
@@ -1392,8 +1418,11 @@ function selectProvince(provinceName, rowIndex) {
         }
     }, 300);
 
+    // 경계만 변경하고 테마 데이터는 유지
+    clearBoundariesOnly();
     displayAllDistrictsBoundaryForProvince(provinceName);
     
+    // 테마 상태에 따라 지도 표시 업데이트
     const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     if (activeThemes.length > 0) {
         updateMapDisplay();
@@ -1424,11 +1453,19 @@ function selectDistrict(provinceName, districtName) {
     if (provinceInfo && provinceInfo.districts && provinceInfo.districts[districtName]) {
         const districtInfo = provinceInfo.districts[districtName];
         map.setView([districtInfo.lat, districtInfo.lng], districtInfo.zoom);
-        updateCurrentCategoryDisplay(`지도 영역: ${provinceName} ${districtName}`);
     }
     
-    clearMapAndBoundaries();
+    // 경계만 변경하고 테마 데이터는 유지
+    clearBoundariesOnly();
     displaySigunguBoundary(provinceName, districtName);
+    
+    // 테마 상태에 따라 지도 표시 업데이트
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
+    if (activeThemes.length > 0) {
+        updateMapDisplay();
+    } else {
+        updateCurrentCategoryDisplay(`지도 영역: ${provinceName} ${districtName}`);
+    }
 }
 
 // '전체 (시도명)' 버튼 클릭 시
@@ -1455,11 +1492,19 @@ function selectAllDistrict(provinceName) {
     const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
     if (provinceInfo) {
         map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
-        updateCurrentCategoryDisplay(`지도 영역: ${provinceName}`);
     }
     
-    clearMapAndBoundaries();
+    // 경계만 변경하고 테마 데이터는 유지
+    clearBoundariesOnly();
     displayAllDistrictsBoundaryForProvince(provinceName);
+    
+    // 테마 상태에 따라 지도 표시 업데이트
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
+    if (activeThemes.length > 0) {
+        updateMapDisplay();
+    } else {
+        updateCurrentCategoryDisplay(`지도 영역: ${provinceName}`);
+    }
 }
 
 // 지도 오버레이 텍스트 업데이트
@@ -1487,15 +1532,24 @@ function selectAdministrativeDivision(region) {
     currentSelectedDistrict = null;
 
     map.setView([36.5, 127.5], 7);
-    updateCurrentCategoryDisplay(`지도 영역: ${region}`);
     
-    clearMapAndBoundaries();
+    // 경계만 변경하고 테마 데이터는 유지
+    clearBoundariesOnly();
     displayAllProvincesBoundary();
+    
+    // 테마 상태에 따라 지도 표시 업데이트
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
+    if (activeThemes.length > 0) {
+        updateMapDisplay();
+    } else {
+        updateCurrentCategoryDisplay(`지도 영역: ${region}`);
+    }
 }
 
 // 선택된 시군구의 경계 표시
 function displaySigunguBoundary(provinceName, districtName) {
-    clearMapAndBoundaries();
+    // 경계만 클리어 (테마 데이터 유지)
+    clearBoundariesOnly();
 
     if (!sigunguGeoJsonData) {
         return;
@@ -1532,7 +1586,8 @@ function displaySigunguBoundary(provinceName, districtName) {
 
 // 특정 시도 모든 시군구 경계 표시
 function displayAllDistrictsBoundaryForProvince(provinceName) {
-    clearMapAndBoundaries();
+    // 경계만 클리어 (테마 데이터 유지)
+    clearBoundariesOnly();
 
     if (!sigunguGeoJsonData) {
         return;
@@ -1566,7 +1621,8 @@ function displayAllDistrictsBoundaryForProvince(provinceName) {
 
 // 전국 모든 시도 경계 표시
 function displayAllProvincesBoundary() {
-    clearMapAndBoundaries();
+    // 경계만 클리어 (테마 데이터 유지)
+    clearBoundariesOnly();
 
     if (!sigunguGeoJsonData) {
         return;

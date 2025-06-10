@@ -1,14 +1,14 @@
 // 전역 변수
-var map;
-var restAreaLayer;
-var currentSelectedProvince = null;
-var currentSelectedDistrict = null;
-var restAreaData = null;
-var previousSelectedLayer = null;
-var firebaseInitialized = false;
+let map;
+let restAreaLayer;
+let currentSelectedProvince = null;
+let currentSelectedDistrict = null;
+let restAreaData = null;
+let previousSelectedLayer = null;
+let firebaseInitialized = false;
 
 // 대한민국 시/도 및 시/군/구 데이터
-var KOREA_ADMINISTRATIVE_DIVISIONS = {
+const KOREA_ADMINISTRATIVE_DIVISIONS = {
     "서울특별시": { lat: 37.5665, lng: 126.9780, zoom: 11, districts: {
         "전체 (서울특별시)": { lat: 37.5665, lng: 126.9780, zoom: 11 },
         "강남구": { lat: 37.4979, lng: 127.0276, zoom: 13 },
@@ -287,53 +287,59 @@ var KOREA_ADMINISTRATIVE_DIVISIONS = {
     }}
 };
 
+// Firebase 초기화 대기 함수
+window.initializeFirebaseApp = function() {
+    firebaseInitialized = true;
+    console.log('Firebase가 초기화되었습니다.');
+};
+
 // 시군구 개수에 따른 동적 높이 계산
 function calculateDistrictsContainerHeight(districtCount) {
-    var allDistrictBtnHeight = 50;
-    var buttonHeight = 34;
-    var gap = 6;
-    var padding = 16;
-    var headerHeight = 37;
-    var gridMarginTop = 8;
+    const allDistrictBtnHeight = 50;
+    const buttonHeight = 34;
+    const gap = 6;
+    const padding = 16;
+    const headerHeight = 37;
+    const gridMarginTop = 8;
     
-    var actualDistrictCount = Math.max(0, districtCount - 1);
-    var rows = Math.ceil(actualDistrictCount / 3);
-    var gridHeight = rows > 0 ? (rows * buttonHeight) + ((rows - 1) * gap) : 0;
-    var contentHeight = allDistrictBtnHeight + gridMarginTop + gridHeight + padding;
-    var totalHeight = headerHeight + contentHeight;
+    const actualDistrictCount = Math.max(0, districtCount - 1);
+    const rows = Math.ceil(actualDistrictCount / 3);
+    const gridHeight = rows > 0 ? (rows * buttonHeight) + ((rows - 1) * gap) : 0;
+    const contentHeight = allDistrictBtnHeight + gridMarginTop + gridHeight + padding;
+    const totalHeight = headerHeight + contentHeight;
     
     return Math.max(totalHeight, 130);
 }
 
 // 시군구 버튼들을 그리드로 생성하는 함수
 function createDistrictsGrid(provinceName, container) {
-    var provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+    const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
     if (!provinceInfo || !provinceInfo.districts) {
         return 0;
     }
 
     // 전체 버튼 먼저 생성
-    var allDistrictBtn = document.createElement('button');
+    const allDistrictBtn = document.createElement('button');
     allDistrictBtn.className = 'district-btn all-district';
-    allDistrictBtn.innerHTML = '<i class="fas fa-map-marked-alt"></i> 전체 (' + provinceName + ')';
-    allDistrictBtn.onclick = function() { selectAllDistrict(provinceName); };
+    allDistrictBtn.innerHTML = `<i class="fas fa-map-marked-alt"></i> 전체 (${provinceName})`;
+    allDistrictBtn.onclick = () => selectAllDistrict(provinceName);
     container.appendChild(allDistrictBtn);
 
     // 나머지 시군구들을 정렬하여 그리드 컨테이너에 추가
-    var sortedDistricts = Object.keys(provinceInfo.districts)
-        .filter(function(d) { return d !== '전체 (' + provinceName + ')'; })
+    const sortedDistricts = Object.keys(provinceInfo.districts)
+        .filter(d => d !== `전체 (${provinceName})`)
         .sort();
 
     if (sortedDistricts.length > 0) {
-        var gridContainer = document.createElement('div');
+        const gridContainer = document.createElement('div');
         gridContainer.className = 'districts-grid';
         
-        sortedDistricts.forEach(function(districtName) {
-            var districtBtn = document.createElement('button');
+        sortedDistricts.forEach(districtName => {
+            const districtBtn = document.createElement('button');
             districtBtn.className = 'district-btn';
-            districtBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i> ' + districtName;
+            districtBtn.innerHTML = `<i class="fas fa-map-marker-alt"></i> ${districtName}`;
             districtBtn.setAttribute('data-district', districtName);
-            districtBtn.onclick = function() { selectDistrict(provinceName, districtName); };
+            districtBtn.onclick = () => selectDistrict(provinceName, districtName);
             gridContainer.appendChild(districtBtn);
         });
         
@@ -344,20 +350,19 @@ function createDistrictsGrid(provinceName, container) {
 }
 
 // 모든 시군구 컨테이너를 강제로 숨기는 헬퍼 함수
-function hideAllDistrictsContainers(caller) {
-    var allDistrictsContainers = document.querySelectorAll('.row-districts-container');
+function hideAllDistrictsContainers(caller = '') {
+    const allDistrictsContainers = document.querySelectorAll('.row-districts-container');
     
-    for (var i = 0; i < allDistrictsContainers.length; i++) {
-        var container = allDistrictsContainers[i];
+    allDistrictsContainers.forEach((container) => {
         container.classList.remove('show');
         container.style.display = 'none';
         container.style.visibility = 'hidden';
-    }
+    });
 }
 
 // 특정 시군구 컨테이너만 표시하는 헬퍼 함수
-function showDistrictsContainer(rowIndex, caller) {
-    var rowContainer = document.getElementById('row-districts-' + rowIndex);
+function showDistrictsContainer(rowIndex, caller = '') {
+    const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
     if (!rowContainer) {
         return false;
     }
@@ -394,7 +399,7 @@ function initializeMap() {
         
         restAreaLayer = L.layerGroup().addTo(map);
         
-        setTimeout(function() {
+        setTimeout(() => {
             if (map) {
                 map.invalidateSize();
             }
@@ -410,10 +415,10 @@ function initializeMap() {
 
 // 사이드바 토글
 function toggleSidebar() {
-    var sidebar = document.getElementById('sidebar');
-    var mainContainer = document.querySelector('.main-container');
-    var toggleBtn = document.querySelector('.menu-toggle i');
-    var isMobile = window.innerWidth <= 768;
+    const sidebar = document.getElementById('sidebar');
+    const mainContainer = document.querySelector('.main-container');
+    const toggleBtn = document.querySelector('.menu-toggle i');
+    const isMobile = window.innerWidth <= 768;
     
     if (sidebar.classList.contains('closed')) {
         sidebar.classList.remove('closed');
@@ -431,7 +436,7 @@ function toggleSidebar() {
         toggleBtn.classList.add('fa-bars');
     }
     
-    setTimeout(function() {
+    setTimeout(() => {
         if (map) {
             map.invalidateSize();
         }
@@ -440,10 +445,10 @@ function toggleSidebar() {
 
 // 지도 클릭 핸들러 (사이드바 자동 닫기)
 function handleMapClick() {
-    var sidebar = document.getElementById('sidebar');
-    var mainContainer = document.querySelector('.main-container');
-    var toggleBtn = document.querySelector('.menu-toggle i');
-    var isMobile = window.innerWidth <= 768;
+    const sidebar = document.getElementById('sidebar');
+    const mainContainer = document.querySelector('.main-container');
+    const toggleBtn = document.querySelector('.menu-toggle i');
+    const isMobile = window.innerWidth <= 768;
     
     if (!sidebar.classList.contains('closed')) {
         sidebar.classList.add('closed');
@@ -453,7 +458,7 @@ function handleMapClick() {
         toggleBtn.classList.remove('fa-times');
         toggleBtn.classList.add('fa-bars');
         
-        setTimeout(function() {
+        setTimeout(() => {
             if (map) {
                 map.invalidateSize();
             }
@@ -463,8 +468,8 @@ function handleMapClick() {
 
 // 카테고리 섹션 토글
 function toggleCategorySection(sectionId) {
-    var content = document.getElementById(sectionId + '-content');
-    var toggle = document.getElementById(sectionId + '-toggle');
+    const content = document.getElementById(`${sectionId}-content`);
+    const toggle = document.getElementById(`${sectionId}-toggle`);
     
     if (content.classList.contains('collapsed')) {
         content.classList.remove('collapsed');
@@ -477,7 +482,7 @@ function toggleCategorySection(sectionId) {
 
 // 내 위치로 이동
 function moveToMyLocation() {
-    var locationBtn = document.querySelector('.location-btn');
+    const locationBtn = document.querySelector('.location-btn');
     locationBtn.disabled = true;
     locationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     
@@ -488,17 +493,31 @@ function moveToMyLocation() {
     }
     
     navigator.geolocation.getCurrentPosition(
-        function(position) {
-            var latitude = position.coords.latitude;
-            var longitude = position.coords.longitude;
+        (position) => {
+            const { latitude, longitude } = position.coords;
             
             if (map) {
                 map.setView([latitude, longitude], 15);
                 
-                var currentLocationMarker = L.marker([latitude, longitude], {
+                const currentLocationMarker = L.marker([latitude, longitude], {
                     icon: L.divIcon({
                         className: 'current-location-marker',
-                        html: '<div style="background-color: #007bff; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3);"><i class="fas fa-dot-circle" style="font-size: 8px;"></i></div>',
+                        html: `
+                            <div style="
+                                background-color: #007bff; 
+                                color: white; 
+                                border-radius: 50%; 
+                                width: 20px; 
+                                height: 20px; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                border: 3px solid white; 
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                            ">
+                                <i class="fas fa-dot-circle" style="font-size: 8px;"></i>
+                            </div>
+                        `,
                         iconSize: [20, 20],
                         iconAnchor: [10, 10]
                     })
@@ -511,8 +530,8 @@ function moveToMyLocation() {
             }
             resetLocationButton();
         },
-        function(error) {
-            var errorMessage = '위치를 가져올 수 없습니다.';
+        (error) => {
+            let errorMessage = '위치를 가져올 수 없습니다.';
             switch (error.code) {
                 case error.PERMISSION_DENIED:
                     errorMessage = '위치 권한이 거부되었습니다.';
@@ -532,7 +551,7 @@ function moveToMyLocation() {
 
 // 위치 버튼 초기화
 function resetLocationButton() {
-    var locationBtn = document.querySelector('.location-btn');
+    const locationBtn = document.querySelector('.location-btn');
     if (locationBtn) {
         locationBtn.disabled = false;
         locationBtn.innerHTML = '<i class="fas fa-location-arrow"></i>';
@@ -540,28 +559,25 @@ function resetLocationButton() {
 }
 
 // 플로팅 메시지 표시
-function showFloatingMessage(message, type, duration) {
-    type = type || 'loading';
-    duration = duration || 5000;
-    
-    var existingMsg = document.querySelector('.floating-message');
+function showFloatingMessage(message, type = 'loading', duration = 5000) {
+    const existingMsg = document.querySelector('.floating-message');
     if (existingMsg) existingMsg.remove();
     
-    var messageDiv = document.createElement('div');
-    messageDiv.className = 'floating-message ' + type;
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `floating-message ${type}`;
     
     if (type === 'loading') {
-        messageDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + message;
+        messageDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${message}`;
     } else if (type === 'error') {
-        messageDiv.innerHTML = '<i class="fas fa-exclamation-circle"></i> ' + message;
+        messageDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
     } else if (type === 'success') {
-        messageDiv.innerHTML = '<i class="fas fa-check"></i> ' + message;
+        messageDiv.innerHTML = `<i class="fas fa-check"></i> ${message}`;
     }
     
     document.body.appendChild(messageDiv);
     
     if (type !== 'loading' && duration > 0) {
-        setTimeout(function() {
+        setTimeout(() => {
             if (messageDiv.parentNode) {
                 messageDiv.remove();
             }
@@ -573,16 +589,19 @@ function showFloatingMessage(message, type, duration) {
 
 // 로딩 스피너 표시
 function showLoadingSpinner(message) {
-    var spinner = document.createElement('div');
+    const spinner = document.createElement('div');
     spinner.className = 'loading-spinner';
     spinner.id = 'loadingSpinner';
-    spinner.innerHTML = '<div class="spinner"></div><div style="text-align: center; color: #666; font-size: 14px;">' + message + '</div>';
+    spinner.innerHTML = `
+        <div class="spinner"></div>
+        <div style="text-align: center; color: #666; font-size: 14px;">${message}</div>
+    `;
     document.body.appendChild(spinner);
 }
 
 // 로딩 스피너 숨기기
 function hideLoadingSpinner() {
-    var spinner = document.getElementById('loadingSpinner');
+    const spinner = document.getElementById('loadingSpinner');
     if (spinner) {
         spinner.remove();
     }
@@ -590,17 +609,17 @@ function hideLoadingSpinner() {
 
 // 창 크기 변경 처리
 function handleResize() {
-    window.addEventListener('resize', function() {
+    window.addEventListener('resize', () => {
         if (map) {
-            setTimeout(function() {
+            setTimeout(() => {
                 map.invalidateSize();
             }, 100);
         }
         
-        var sidebar = document.getElementById('sidebar');
-        var mainContainer = document.querySelector('.main-container');
-        var toggleBtn = document.querySelector('.menu-toggle i');
-        var isMobile = window.innerWidth <= 768;
+        const sidebar = document.getElementById('sidebar');
+        const mainContainer = document.querySelector('.main-container');
+        const toggleBtn = document.querySelector('.menu-toggle i');
+        const isMobile = window.innerWidth <= 768;
         
         if (isMobile) {
             sidebar.classList.add('closed');
@@ -623,95 +642,196 @@ function handleResize() {
     });
 }
 
-// Firestore에서 휴게소 데이터 로드 (사파리 호환)
-function loadRestAreaDataFromFirestore() {
-    return new Promise(function(resolve, reject) {
-        try {
-            showLoadingSpinner('Firestore에서 휴게소 데이터를 불러오는 중...');
-            
-            if (!firebaseInitialized || !window.firestore) {
-                throw new Error('Firebase가 초기화되지 않았습니다');
-            }
-            
-            // 사파리 호환 방식으로 Firestore 컬렉션 접근
-            window.firestore.collection('1.express_point').get().then(function(querySnapshot) {
-                restAreaData = [];
-                var validCount = 0;
-                
-                querySnapshot.forEach(function(doc) {
-                    try {
-                        var data = doc.data();
-                        
-                        // 위도, 경도 필드명을 실제 Firestore 필드명으로 변경하세요
-                        var lat = parseFloat(data['위도'] || data.lat || data.latitude);
-                        var lng = parseFloat(data['경도'] || data.lng || data.longitude);
-                        
-                        if (!isNaN(lat) && !isNaN(lng) && 
-                            lat >= 33 && lat <= 39 && 
-                            lng >= 124 && lng <= 132) {
-                            
-                            var standardizedRow = {
-                                id: doc.id,
-                                '휴게소명': data['휴게소명'] || data.name || '',
-                                '고속도로': data['고속도로'] || data.highway || '',
-                                '위도': lat,
-                                '경도': lng,
-                                '휴게소종류': data['휴게소종류'] || data.type || '',
-                                '운영시간': data['운영시간'] || data.hours || '',
-                                '방향': data['방향'] || data.direction || '',
-                                '주요편의시설': data['주요편의시설'] || data.facilities || '',
-                                '전화번호': data['전화번호'] || data.phone || '',
-                                '데이터기준일': data['데이터기준일'] || data.baseDate || '',
-                                '프랜차이즈매장': data['프랜차이즈매장'] || data.franchise || ''
-                            };
-                            
-                            restAreaData.push(standardizedRow);
-                            validCount++;
-                        }
-                    } catch (e) {
-                        console.warn('문서 처리 실패:', doc.id, e);
-                    }
-                });
+// 자동 위치 감지 및 시군구 줌인
+async function autoDetectLocationAndZoom() {
+    return new Promise((resolve) => {
+        if (!navigator.geolocation) {
+            resolve(false);
+            return;
+        }
 
-                hideLoadingSpinner();
+        showFloatingMessage('📍 위치 기반 지역을 찾고 있습니다...', 'loading');
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+
+                try {
+                    const nearestDistrict = findNearestDistrict(latitude, longitude);
+                    
+                    if (nearestDistrict) {
+                        const { provinceName, districtName, distance } = nearestDistrict;
+                        
+                        const allRegions = ['전국', ...Object.keys(KOREA_ADMINISTRATIVE_DIVISIONS)];
+                        const provinceIndex = allRegions.indexOf(provinceName);
+                        const rowIndex = Math.floor(provinceIndex / 3);
+                        
+                        hideAllDistrictsContainers('autoDetectLocationAndZoom');
+                        
+                        selectProvince(provinceName, rowIndex);
+                        
+                        setTimeout(() => {
+                            selectDistrict(provinceName, districtName);
+                            showFloatingMessage(`📍 현재 위치 기반으로 ${provinceName} ${districtName}을(를) 표시했습니다.`, 'success', 4000);
+                        }, 500);
+                        
+                        resolve(true);
+                    } else {
+                        showFloatingMessage('위치 기반 지역을 찾을 수 없어 전국 지도를 표시합니다.', 'success', 3000);
+                        resolve(false);
+                    }
+                } catch (error) {
+                    showFloatingMessage('위치 기반 지역을 찾을 수 없어 전국 지도를 표시합니다.', 'success', 3000);
+                    resolve(false);
+                }
+            },
+            (error) => {
+                let message = '위치 접근이 거부되어 전국 지도를 표시합니다.';
                 
-                if (restAreaData.length === 0) {
-                    throw new Error('유효한 휴게소 데이터가 없습니다.');
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = '위치 권한이 거부되어 전국 지도를 표시합니다.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = '위치 정보를 사용할 수 없어 전국 지도를 표시합니다.';
+                        break;
+                    case error.TIMEOUT:
+                        message = '위치 요청 시간이 초과되어 전국 지도를 표시합니다.';
+                        break;
                 }
                 
-                showFloatingMessage('🎉 Firestore에서 휴게소 데이터 ' + validCount + '개를 성공적으로 로드했습니다!', 'success', 4000);
-                resolve();
+                showFloatingMessage(message, 'success', 3000);
+                resolve(false);
+            },
+            {
+                timeout: 10000,
+                enableHighAccuracy: false,
+                maximumAge: 300000
+            }
+        );
+    });
+}
+
+// 현재 위치에서 가장 가까운 시군구 찾기
+function findNearestDistrict(lat, lng) {
+    let nearest = null;
+    let minDistance = Infinity;
+
+    Object.entries(KOREA_ADMINISTRATIVE_DIVISIONS).forEach(([provinceName, provinceInfo]) => {
+        if (provinceInfo.districts) {
+            Object.entries(provinceInfo.districts).forEach(([districtName, districtInfo]) => {
+                if (districtName.startsWith('전체 (')) return;
                 
-            }).catch(function(error) {
-                throw error;
+                const distance = calculateDistance(lat, lng, districtInfo.lat, districtInfo.lng);
+                
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearest = {
+                        provinceName,
+                        districtName,
+                        distance
+                    };
+                }
             });
-            
-        } catch (error) {
-            hideLoadingSpinner();
-            console.error('Firestore 데이터 로드 실패:', error);
-            
-            // 샘플 데이터 사용
-            var sampleData = getSampleRestAreaData();
-            restAreaData = sampleData.map(function(row) {
-                return {
-                    '휴게소명': row['휴게소명'],
-                    '고속도로': row['고속도로'],
-                    '위도': parseFloat(row['위도']),
-                    '경도': parseFloat(row['경도']),
-                    '휴게소종류': row['휴게소종류'],
-                    '운영시간': row['운영시간'],
-                    '방향': row['방향'],
-                    '주요편의시설': row['주요편의시설'],
-                    '전화번호': row['전화번호'],
-                    '데이터기준일': row['데이터기준일'],
-                    '프랜차이즈매장': row['프랜차이즈매장']
-                };
-            });
-            
-            showFloatingMessage('⚠️ Firestore 연결에 실패하여 샘플 데이터(' + restAreaData.length + '개)를 사용합니다.', 'error', 5000);
-            resolve();
         }
     });
+
+    return minDistance <= 100 ? nearest : null;
+}
+
+// 두 좌표 간의 거리 계산 (km)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+             Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Firestore에서 휴게소 데이터 로드
+async function loadRestAreaDataFromFirestore() {
+    try {
+        showLoadingSpinner('Firestore에서 휴게소 데이터를 불러오는 중...');
+        
+        if (!firebaseInitialized || !window.firestore) {
+            throw new Error('Firebase가 초기화되지 않았습니다');
+        }
+        
+        const { collection, getDocs } = window.firestoreCollections;
+        const restAreasCollection = collection(window.firestore, 'restAreas'); // 컬렉션 이름을 실제 이름으로 변경하세요
+        const querySnapshot = await getDocs(restAreasCollection);
+        
+        restAreaData = [];
+        let validCount = 0;
+        
+        querySnapshot.forEach((doc) => {
+            try {
+                const data = doc.data();
+                
+                // 위도, 경도 필드명을 실제 Firestore 필드명으로 변경하세요
+                const lat = parseFloat(data.위도 || data.lat || data.latitude);
+                const lng = parseFloat(data.경도 || data.lng || data.longitude);
+                
+                if (!isNaN(lat) && !isNaN(lng) && 
+                    lat >= 33 && lat <= 39 && 
+                    lng >= 124 && lng <= 132) {
+                    
+                    const standardizedRow = {
+                        id: doc.id,
+                        '휴게소명': data.휴게소명 || data.name || '',
+                        '고속도로': data.고속도로 || data.highway || '',
+                        '위도': lat,
+                        '경도': lng,
+                        '휴게소종류': data.휴게소종류 || data.type || '',
+                        '운영시간': data.운영시간 || data.hours || '',
+                        '방향': data.방향 || data.direction || '',
+                        '주요편의시설': data.주요편의시설 || data.facilities || '',
+                        '전화번호': data.전화번호 || data.phone || '',
+                        '데이터기준일': data.데이터기준일 || data.baseDate || '',
+                        '프랜차이즈매장': data.프랜차이즈매장 || data.franchise || ''
+                    };
+                    
+                    restAreaData.push(standardizedRow);
+                    validCount++;
+                }
+            } catch (e) {
+                console.warn('문서 처리 실패:', doc.id, e);
+            }
+        });
+
+        hideLoadingSpinner();
+        
+        if (restAreaData.length === 0) {
+            throw new Error('유효한 휴게소 데이터가 없습니다.');
+        }
+        
+        showFloatingMessage(`🎉 Firestore에서 휴게소 데이터 ${validCount}개를 성공적으로 로드했습니다!`, 'success', 4000);
+        
+    } catch (error) {
+        hideLoadingSpinner();
+        console.error('Firestore 데이터 로드 실패:', error);
+        
+        // 샘플 데이터 사용
+        const sampleData = getSampleRestAreaData();
+        restAreaData = sampleData.map(row => ({
+            '휴게소명': row['휴게소명'],
+            '고속도로': row['고속도로'],
+            '위도': parseFloat(row['위도']),
+            '경도': parseFloat(row['경도']),
+            '휴게소종류': row['휴게소종류'],
+            '운영시간': row['운영시간'],
+            '방향': row['방향'],
+            '주요편의시설': row['주요편의시설'],
+            '전화번호': row['전화번호'],
+            '데이터기준일': row['데이터기준일'],
+            '프랜차이즈매장': row['프랜차이즈매장']
+        }));
+        
+        showFloatingMessage(`⚠️ Firestore 연결에 실패하여 샘플 데이터(${restAreaData.length}개)를 사용합니다.`, 'error', 5000);
+    }
 }
 
 // 샘플 휴게소 데이터 생성 (Firestore 연결 실패 시 fallback)
@@ -787,55 +907,55 @@ function getSampleRestAreaData() {
 
 // 시/도 목록 로드 (전국 버튼을 첫 줄에 포함)
 function loadProvinces() {
-    var containerDiv = document.getElementById('administrative-container');
+    const containerDiv = document.getElementById('administrative-container');
     containerDiv.innerHTML = '';
 
-    var allRegions = ['전국'].concat(Object.keys(KOREA_ADMINISTRATIVE_DIVISIONS));
-    var rowSize = 3;
+    const allRegions = ['전국', ...Object.keys(KOREA_ADMINISTRATIVE_DIVISIONS)];
+    const rowSize = 3;
     
-    for (var i = 0; i < allRegions.length; i += rowSize) {
-        var rowRegions = allRegions.slice(i, i + rowSize);
-        var rowIndex = Math.floor(i / rowSize);
+    for (let i = 0; i < allRegions.length; i += rowSize) {
+        const rowRegions = allRegions.slice(i, i + rowSize);
+        const rowIndex = Math.floor(i / rowSize);
         
-        var provinceRow = document.createElement('div');
+        const provinceRow = document.createElement('div');
         provinceRow.className = 'provinces-row';
-        provinceRow.id = 'province-row-' + rowIndex;
+        provinceRow.id = `province-row-${rowIndex}`;
         provinceRow.style.marginBottom = '0px';
         
-        var rowButtons = document.createElement('div');
+        const rowButtons = document.createElement('div');
         rowButtons.className = 'provinces-row-buttons';
         
-        rowRegions.forEach(function(regionName) {
-            var regionBtn = document.createElement('button');
+        rowRegions.forEach(regionName => {
+            const regionBtn = document.createElement('button');
             regionBtn.className = 'province-btn';
             
             if (regionName === '전국') {
                 regionBtn.innerHTML = '<i class="fas fa-globe"></i> 전국';
                 regionBtn.classList.add('korea-btn');
-                regionBtn.onclick = function() { selectAdministrativeDivision('전국'); };
+                regionBtn.onclick = () => selectAdministrativeDivision('전국');
             } else {
                 regionBtn.textContent = regionName;
                 regionBtn.setAttribute('data-province', regionName);
                 regionBtn.setAttribute('data-row', rowIndex);
-                regionBtn.onclick = function() { selectProvince(this.getAttribute('data-province'), this.getAttribute('data-row')); };
+                regionBtn.onclick = () => selectProvince(regionName, rowIndex);
             }
             
             rowButtons.appendChild(regionBtn);
         });
         
-        var hasProvinces = rowRegions.some(function(region) { return region !== '전국'; });
+        const hasProvinces = rowRegions.some(region => region !== '전국');
         if (hasProvinces) {
-            var rowDistrictsContainer = document.createElement('div');
+            const rowDistrictsContainer = document.createElement('div');
             rowDistrictsContainer.className = 'row-districts-container';
-            rowDistrictsContainer.id = 'row-districts-' + rowIndex;
+            rowDistrictsContainer.id = `row-districts-${rowIndex}`;
             
-            var districtsHeader = document.createElement('div');
+            const districtsHeader = document.createElement('div');
             districtsHeader.className = 'row-districts-header';
-            districtsHeader.id = 'row-districts-header-' + rowIndex;
+            districtsHeader.id = `row-districts-header-${rowIndex}`;
             
-            var districtsContent = document.createElement('div');
+            const districtsContent = document.createElement('div');
             districtsContent.className = 'row-districts-content';
-            districtsContent.id = 'row-districts-content-' + rowIndex;
+            districtsContent.id = `row-districts-content-${rowIndex}`;
             
             rowDistrictsContainer.appendChild(districtsHeader);
             rowDistrictsContainer.appendChild(districtsContent);
@@ -851,14 +971,13 @@ function loadProvinces() {
 
 // 모든 시도 행의 마진을 기본값으로 리셋 (0px)
 function resetAllProvinceRowMargins() {
-    var provinceRows = document.querySelectorAll('.provinces-row');
-    for (var i = 0; i < provinceRows.length; i++) {
-        provinceRows[i].style.marginBottom = '0px';
-    }
+    document.querySelectorAll('.provinces-row').forEach(row => {
+        row.style.marginBottom = '0px';
+    });
 }
 
 // 테마 지도 상태 관리
-var themeStates = {
+const themeStates = {
     restarea: true,
     restaurant: false,
     hotel: false,
@@ -872,7 +991,7 @@ var themeStates = {
 function toggleTheme(themeType) {
     themeStates[themeType] = !themeStates[themeType];
     
-    var toggleElement = document.getElementById('theme-' + themeType);
+    const toggleElement = document.getElementById(`theme-${themeType}`);
     if (themeStates[themeType]) {
         toggleElement.classList.add('active');
     } else {
@@ -924,7 +1043,7 @@ function toggleTheme(themeType) {
 
 // 준비 중 메시지
 function showComingSoon(themeName) {
-    showFloatingMessage('🚧 ' + (themeName || '해당') + ' 테마는 준비 중입니다. 곧 서비스될 예정이에요!', 'success', 3000);
+    showFloatingMessage(`🚧 ${themeName || '해당'} 테마는 준비 중입니다. 곧 서비스될 예정이에요!`, 'success', 3000);
 }
 
 // 휴게소 숨기기
@@ -937,13 +1056,11 @@ function hideRestAreas() {
 
 // 지도 표시 업데이트 (테마 상태에 따른)
 function updateMapDisplay() {
-    var activeThemes = Object.keys(themeStates).filter(function(theme) { 
-        return themeStates[theme]; 
-    });
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     
-    var locationText = '';
+    let locationText = '';
     if (currentSelectedProvince && currentSelectedDistrict) {
-        locationText = currentSelectedProvince + ' ' + currentSelectedDistrict;
+        locationText = `${currentSelectedProvince} ${currentSelectedDistrict}`;
     } else if (currentSelectedProvince) {
         locationText = currentSelectedProvince;
     } else {
@@ -951,9 +1068,9 @@ function updateMapDisplay() {
     }
     
     if (activeThemes.length === 0) {
-        updateCurrentCategoryDisplay('지도 영역: ' + locationText);
+        updateCurrentCategoryDisplay(`지도 영역: ${locationText}`);
     } else if (activeThemes.length === 1) {
-        var themeNames = {
+        const themeNames = {
             restarea: '고속도로 휴게소',
             restaurant: '맛집',
             hotel: '숙박',
@@ -962,14 +1079,14 @@ function updateMapDisplay() {
             hotplace: '핫플',
             kids: '어린이시설'
         };
-        var themeName = themeNames[activeThemes[0]];
+        const themeName = themeNames[activeThemes[0]];
         if (activeThemes[0] === 'restarea' && restAreaData) {
-            updateCurrentCategoryDisplay(themeName + ' (' + restAreaData.length + '개) - ' + locationText);
+            updateCurrentCategoryDisplay(`${themeName} (${restAreaData.length}개) - ${locationText}`);
         } else {
-            updateCurrentCategoryDisplay(themeName + ' - ' + locationText);
+            updateCurrentCategoryDisplay(`${themeName} - ${locationText}`);
         }
     } else {
-        updateCurrentCategoryDisplay(activeThemes.length + '개 테마 활성화 - ' + locationText);
+        updateCurrentCategoryDisplay(`${activeThemes.length}개 테마 활성화 - ${locationText}`);
     }
 }
 
@@ -987,15 +1104,14 @@ function selectProvince(provinceName, rowIndex) {
         return;
     }
     
-    var buttons = document.querySelectorAll('.province-btn, .district-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
-    }
+    document.querySelectorAll('.province-btn, .district-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
     hideAllDistrictsContainers('selectProvince');
     resetAllProvinceRowMargins();
 
-    var selectedProvinceBtn = document.querySelector('[data-province="' + provinceName + '"][data-row="' + rowIndex + '"]');
+    const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"][data-row="${rowIndex}"]`);
     if (selectedProvinceBtn) {
         selectedProvinceBtn.classList.add('active');
     }
@@ -1003,25 +1119,25 @@ function selectProvince(provinceName, rowIndex) {
     currentSelectedProvince = provinceName;
     currentSelectedDistrict = null;
 
-    var districtsHeader = document.getElementById('row-districts-header-' + rowIndex);
-    var districtsContent = document.getElementById('row-districts-content-' + rowIndex);
-    var districtsContainer = document.getElementById('row-districts-' + rowIndex);
+    const districtsHeader = document.getElementById(`row-districts-header-${rowIndex}`);
+    const districtsContent = document.getElementById(`row-districts-content-${rowIndex}`);
+    const districtsContainer = document.getElementById(`row-districts-${rowIndex}`);
     
     if (!districtsHeader || !districtsContent || !districtsContainer) {
         return;
     }
     
-    districtsHeader.innerHTML = '<i class="fas fa-map-marked-alt"></i> ' + provinceName + ' 시군구';
+    districtsHeader.innerHTML = `<i class="fas fa-map-marked-alt"></i> ${provinceName} 시군구`;
     districtsContent.innerHTML = '';
     
-    var districtCount = createDistrictsGrid(provinceName, districtsContent);
-    var dynamicHeight = calculateDistrictsContainerHeight(districtCount);
-    districtsContainer.style.minHeight = dynamicHeight + 'px';
+    const districtCount = createDistrictsGrid(provinceName, districtsContent);
+    const dynamicHeight = calculateDistrictsContainerHeight(districtCount);
+    districtsContainer.style.minHeight = `${dynamicHeight}px`;
     
     showDistrictsContainer(rowIndex, 'selectProvince');
 
-    setTimeout(function() {
-        var rowContainer = document.getElementById('row-districts-' + rowIndex);
+    setTimeout(() => {
+        const rowContainer = document.getElementById(`row-districts-${rowIndex}`);
         if (rowContainer) {
             rowContainer.scrollIntoView({
                 behavior: 'smooth',
@@ -1031,73 +1147,67 @@ function selectProvince(provinceName, rowIndex) {
     }, 300);
 
     // 지도 이동
-    var provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+    const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
     if (provinceInfo) {
         map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
     }
     
     // 테마 상태에 따라 지도 표시 업데이트
-    var activeThemes = Object.keys(themeStates).filter(function(theme) { 
-        return themeStates[theme]; 
-    });
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     if (activeThemes.length > 0) {
         updateMapDisplay();
     } else {
-        updateCurrentCategoryDisplay('선택된 시도: ' + provinceName + ' (시군구를 선택해주세요)');
+        updateCurrentCategoryDisplay(`선택된 시도: ${provinceName} (시군구를 선택해주세요)`);
     }
 }
 
 // 시/군/구 선택 (해당 시군구로 줌인)
 function selectDistrict(provinceName, districtName) {
-    var buttons = document.querySelectorAll('.province-btn, .district-btn, .category-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
-    }
+    document.querySelectorAll('.province-btn, .district-btn, .category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
-    var selectedProvinceBtn = document.querySelector('[data-province="' + provinceName + '"]');
+    const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
     if (selectedProvinceBtn) {
         selectedProvinceBtn.classList.add('active');
     }
     
-    var selectedDistrictBtn = document.querySelector('[data-district="' + districtName + '"]');
+    const selectedDistrictBtn = document.querySelector(`[data-district="${districtName}"]`);
     if (selectedDistrictBtn) {
         selectedDistrictBtn.classList.add('active');
     }
     
     currentSelectedDistrict = districtName;
 
-    var provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+    const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
     if (provinceInfo && provinceInfo.districts && provinceInfo.districts[districtName]) {
-        var districtInfo = provinceInfo.districts[districtName];
+        const districtInfo = provinceInfo.districts[districtName];
         map.setView([districtInfo.lat, districtInfo.lng], districtInfo.zoom);
     }
     
     // 테마 상태에 따라 지도 표시 업데이트
-    var activeThemes = Object.keys(themeStates).filter(function(theme) { 
-        return themeStates[theme]; 
-    });
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     if (activeThemes.length > 0) {
         updateMapDisplay();
     } else {
-        updateCurrentCategoryDisplay('지도 영역: ' + provinceName + ' ' + districtName);
+        updateCurrentCategoryDisplay(`지도 영역: ${provinceName} ${districtName}`);
     }
 }
 
 // '전체 (시도명)' 버튼 클릭 시
 function selectAllDistrict(provinceName) {
-    var buttons = document.querySelectorAll('.province-btn, .district-btn, .category-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
-    }
+    document.querySelectorAll('.province-btn, .district-btn, .category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
-    var selectedProvinceBtn = document.querySelector('[data-province="' + provinceName + '"]');
+    const selectedProvinceBtn = document.querySelector(`[data-province="${provinceName}"]`);
     if (selectedProvinceBtn) {
         selectedProvinceBtn.classList.add('active');
     }
     
-    var activeContainer = document.querySelector('.row-districts-container.show');
+    const activeContainer = document.querySelector('.row-districts-container.show');
     if (activeContainer) {
-        var allDistrictBtn = activeContainer.querySelector('.all-district');
+        const allDistrictBtn = activeContainer.querySelector('.all-district');
         if (allDistrictBtn) {
             allDistrictBtn.classList.add('active');
         }
@@ -1105,19 +1215,17 @@ function selectAllDistrict(provinceName) {
     
     currentSelectedDistrict = null;
 
-    var provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
+    const provinceInfo = KOREA_ADMINISTRATIVE_DIVISIONS[provinceName];
     if (provinceInfo) {
         map.setView([provinceInfo.lat, provinceInfo.lng], provinceInfo.zoom);
     }
     
     // 테마 상태에 따라 지도 표시 업데이트
-    var activeThemes = Object.keys(themeStates).filter(function(theme) { 
-        return themeStates[theme]; 
-    });
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     if (activeThemes.length > 0) {
         updateMapDisplay();
     } else {
-        updateCurrentCategoryDisplay('지도 영역: ' + provinceName);
+        updateCurrentCategoryDisplay(`지도 영역: ${provinceName}`);
     }
 }
 
@@ -1128,20 +1236,19 @@ function updateCurrentCategoryDisplay(text) {
 
 // 전국 선택 (마진 리셋)
 function selectAdministrativeDivision(region) {
-    var buttons = document.querySelectorAll('.province-btn, .district-btn, .category-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
-    }
+    document.querySelectorAll('.province-btn, .district-btn, .category-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
     hideAllDistrictsContainers('selectAdministrativeDivision');
     resetAllProvinceRowMargins();
 
-    var allKoreaBtns = document.querySelectorAll('.province-btn');
-    for (var i = 0; i < allKoreaBtns.length; i++) {
-        if (allKoreaBtns[i].textContent.indexOf('전국') !== -1) {
-            allKoreaBtns[i].classList.add('active');
+    const allKoreaBtns = document.querySelectorAll('.province-btn');
+    allKoreaBtns.forEach(btn => {
+        if (btn.textContent.includes('전국')) {
+            btn.classList.add('active');
         }
-    }
+    });
 
     currentSelectedProvince = null;
     currentSelectedDistrict = null;
@@ -1149,31 +1256,28 @@ function selectAdministrativeDivision(region) {
     map.setView([36.5, 127.5], 7);
     
     // 테마 상태에 따라 지도 표시 업데이트
-    var activeThemes = Object.keys(themeStates).filter(function(theme) { 
-        return themeStates[theme]; 
-    });
+    const activeThemes = Object.keys(themeStates).filter(theme => themeStates[theme]);
     if (activeThemes.length > 0) {
         updateMapDisplay();
     } else {
-        updateCurrentCategoryDisplay('지도 영역: ' + region);
+        updateCurrentCategoryDisplay(`지도 영역: ${region}`);
     }
 }
 
 // 휴게소 표시 (Firestore 데이터 기반)
 function showRestAreas() {
     if (!restAreaData || !Array.isArray(restAreaData) || restAreaData.length === 0) {
-        var errorMsg = !restAreaData ? 
+        const errorMsg = !restAreaData ? 
             '휴게소 데이터가 로드되지 않았습니다.' : 
-            '휴게소 데이터가 비어있습니다.';
+            `휴게소 데이터가 비어있습니다.`;
         
-        showFloatingMessage(errorMsg + ' Firestore 연결을 확인해주세요.', 'error', 7000);
+        showFloatingMessage(`${errorMsg} Firestore 연결을 확인해주세요.`, 'error', 7000);
         return;
     }
 
-    var buttons = document.querySelectorAll('.province-btn, .district-btn');
-    for (var i = 0; i < buttons.length; i++) {
-        buttons[i].classList.remove('active');
-    }
+    document.querySelectorAll('.province-btn, .district-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
     
     hideAllDistrictsContainers('showRestAreas');
     resetAllProvinceRowMargins();
@@ -1181,50 +1285,50 @@ function showRestAreas() {
     clearMapAndBoundaries();
     
     map.setView([36.5, 127.5], 7);
-    updateCurrentCategoryDisplay('고속도로 휴게소 (' + restAreaData.length + '개)');
+    updateCurrentCategoryDisplay(`고속도로 휴게소 (${restAreaData.length}개)`);
 
-    showLoadingSpinner(restAreaData.length + '개 휴게소 마커를 생성하는 중...');
+    showLoadingSpinner(`${restAreaData.length}개 휴게소 마커를 생성하는 중...`);
 
-    var successCount = 0;
-    var errorCount = 0;
-    var processedHighways = [];
+    let successCount = 0;
+    let errorCount = 0;
+    const processedHighways = new Set();
     
-    restAreaData.forEach(function(restArea, index) {
+    restAreaData.forEach((restArea, index) => {
         try {
-            var lat = restArea['위도'];
-            var lng = restArea['경도'];
+            const lat = restArea['위도'];
+            const lng = restArea['경도'];
             
             if (!lat || !lng || isNaN(lat) || isNaN(lng)) {
                 errorCount++;
                 return;
             }
             
-            var markerIcon = 'fas fa-coffee';
-            var markerColor = '#28a745';
+            let markerIcon = 'fas fa-coffee';
+            let markerColor = '#28a745';
             
-            var restAreaType = restArea['휴게소종류'] || '';
-            if (restAreaType.indexOf('간이') !== -1) {
+            const restAreaType = restArea['휴게소종류'] || '';
+            if (restAreaType.includes('간이')) {
                 markerIcon = 'fas fa-store';
                 markerColor = '#ffc107';
             }
             
-            var marker = L.marker([lat, lng], {
+            const marker = L.marker([lat, lng], {
                 icon: L.divIcon({
                     className: 'rest-area-marker',
-                    html: '<i class="' + markerIcon + '" style="color: white;"></i>',
-                    iconSize: [18, 18],
-                    iconAnchor: [9, 9]
+                    html: `<i class="${markerIcon}" style="color: white;"></i>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
                 })
             });
 
             marker.on('add', function() {
-                var markerElement = marker.getElement();
+                const markerElement = marker.getElement();
                 if (markerElement) {
                     markerElement.style.backgroundColor = markerColor;
                 }
             });
 
-            var popupContent = createRestAreaPopup(restArea);
+            const popupContent = createRestAreaPopup(restArea);
             marker.bindPopup(popupContent, {
                 className: 'custom-popup',
                 maxWidth: 320,
@@ -1235,9 +1339,7 @@ function showRestAreas() {
             successCount++;
             
             if (restArea['고속도로']) {
-                if (processedHighways.indexOf(restArea['고속도로']) === -1) {
-                    processedHighways.push(restArea['고속도로']);
-                }
+                processedHighways.add(restArea['고속도로']);
             }
             
         } catch (error) {
@@ -1247,12 +1349,12 @@ function showRestAreas() {
 
     hideLoadingSpinner();
     
-    processedHighways.sort();
+    const highwayList = Array.from(processedHighways).sort();
     
     if (successCount > 0) {
-        var message = errorCount > 0 
-            ? successCount + '개 휴게소 표시 완료 (' + errorCount + '개 오류)'
-            : '🎉 전국 ' + successCount + '개 휴게소를 지도에 표시했습니다!';
+        const message = errorCount > 0 
+            ? `${successCount}개 휴게소 표시 완료 (${errorCount}개 오류)`
+            : `🎉 전국 ${successCount}개 휴게소를 지도에 표시했습니다!`;
         
         showFloatingMessage(message, 'success', 5000);
     } else {
@@ -1260,177 +1362,108 @@ function showRestAreas() {
     }
 }
 
-// 휴게소 팝업 내용 생성 (개선된 버전)
+// 휴게소 팝업 내용 생성 (기존과 동일)
 function createRestAreaPopup(restArea) {
-    // 프랜차이즈 매장 처리 및 로고 표시
-    var franchiseHtml = '';
-    var hasFranchise = false;
-    
+    let franchiseHtml = '';
     if (restArea['프랜차이즈매장'] && restArea['프랜차이즈매장'].trim() !== '') {
-        var franchiseText = restArea['프랜차이즈매장']
+        let franchiseText = restArea['프랜차이즈매장']
             .replace(/^["']|["']$/g, '')
             .replace(/["']/g, '');
         
-        var franchises = franchiseText
+        const franchises = franchiseText
             .split(/[,;\/]/)
-            .map(function(f) { return f.trim(); })
-            .filter(function(f) { return f !== '' && f !== '-' && f !== '없음' && f !== '정보없음'; });
+            .map(f => f.trim())
+            .filter(f => f !== '' && f !== '-' && f !== '없음');
         
         if (franchises.length > 0) {
-            hasFranchise = true;
-            var franchiseItems = franchises.map(function(franchise) {
-                var icon = getFranchiseIcon(franchise);
-                return '<div class="franchise-item-with-logo">' + 
-                       '<i class="' + icon.class + '" style="color: ' + icon.color + ';"></i>' +
-                       '<span>' + franchise + '</span>' +
-                       '</div>';
-            }).join('');
-            
-            franchiseHtml = '<div class="popup-row franchise-highlight">' +
-                           '<div class="popup-label"><i class="fas fa-store"></i> 매장:</div>' +
-                           '<div class="popup-value">' +
-                           '<div class="franchise-list-enhanced">' + franchiseItems + '</div>' +
-                           '</div></div>';
+            franchiseHtml = `
+                <div class="popup-row">
+                    <div class="popup-label">매장:</div>
+                    <div class="popup-value">
+                        <div class="franchise-list">
+                            ${franchises.map(franchise => `<span class="franchise-item">${franchise}</span>`).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     }
-    
-    // 프랜차이즈 없을 때 표시
-    if (!hasFranchise) {
-        franchiseHtml = '<div class="popup-row no-franchise">' +
-                       '<div class="popup-label"><i class="fas fa-store"></i> 매장:</div>' +
-                       '<div class="popup-value no-franchise-text">' +
-                       '<i class="fas fa-times-circle"></i> 프랜차이즈 정보 없음' +
-                       '</div></div>';
-    }
 
-    // 편의시설 처리
-    var facilitiesText = restArea['주요편의시설'] || '';
+    let facilitiesText = restArea['주요편의시설'] || '';
     if (facilitiesText) {
         facilitiesText = facilitiesText.replace(/^["']|["']$/g, '').replace(/["']/g, '');
     }
 
-    // 방향 색상
-    var directionColor = '#28a745';
-    var direction = restArea['방향'] || '';
-    if (direction.indexOf('서울') !== -1 || direction.indexOf('인천') !== -1) {
+    let operatingHours = restArea['운영시간'] || '정보없음';
+    if (operatingHours === '00:00-23:59') {
+        operatingHours = '24시간 운영';
+    }
+
+    let typeIcon = 'fas fa-coffee';
+    const restAreaType = restArea['휴게소종류'] || '';
+    if (restAreaType.includes('일반')) {
+        typeIcon = 'fas fa-coffee';
+    } else if (restAreaType.includes('간이')) {
+        typeIcon = 'fas fa-store';
+    }
+
+    let directionColor = '#28a745';
+    const direction = restArea['방향'] || '';
+    if (direction.includes('서울') || direction.includes('인천')) {
         directionColor = '#007bff';
-    } else if (direction.indexOf('부산') !== -1 || direction.indexOf('대구') !== -1) {
+    } else if (direction.includes('부산') || direction.includes('대구')) {
         directionColor = '#dc3545';
     }
 
-    // 헤더 스타일 - 프랜차이즈 유무에 따라 구분
-    var headerClass = hasFranchise ? 'popup-header-franchise' : 'popup-header-basic';
-    var headerIcon = hasFranchise ? 'fas fa-star' : 'fas fa-coffee';
-
-    return '<div class="enhanced-popup">' +
-           '<div class="' + headerClass + '">' +
-           '<i class="' + headerIcon + '"></i> ' + (restArea['휴게소명'] || '정보없음') +
-           (hasFranchise ? '<span class="franchise-badge">🏪</span>' : '') +
-           '</div>' +
-           '<div class="popup-content">' +
-           '<div class="popup-row">' +
-           '<div class="popup-label"><i class="fas fa-road"></i> 고속도로:</div>' +
-           '<div class="popup-value"><strong>' + (restArea['고속도로'] || '정보없음') + '</strong></div>' +
-           '</div>' +
-           '<div class="popup-row">' +
-           '<div class="popup-label"><i class="fas fa-arrow-right"></i> 방향:</div>' +
-           '<div class="popup-value" style="color: ' + directionColor + '; font-weight: 600;">' +
-           (restArea['방향'] || '정보없음') +
-           '</div>' +
-           '</div>' +
-           franchiseHtml +
-           (facilitiesText && facilitiesText !== '정보없음' ? 
-           '<div class="popup-row">' +
-           '<div class="popup-label"><i class="fas fa-concierge-bell"></i> 편의시설:</div>' +
-           '<div class="popup-value">' + facilitiesText + '</div>' +
-           '</div>' : '') +
-           (restArea['전화번호'] && restArea['전화번호'] !== '문의 필요' && restArea['전화번호'] !== '정보없음' ? 
-           '<div class="popup-row">' +
-           '<div class="popup-label"><i class="fas fa-phone"></i> 전화:</div>' +
-           '<div class="popup-value">' + restArea['전화번호'] + '</div>' +
-           '</div>' : '') +
-           '</div>' +
-           '</div>';
-}
-
-// 프랜차이즈별 아이콘 및 색상 반환
-function getFranchiseIcon(franchiseName) {
-    var name = franchiseName.toLowerCase();
-    
-    // 커피 체인
-    if (name.indexOf('스타벅스') !== -1 || name.indexOf('starbucks') !== -1) {
-        return { class: 'fas fa-coffee', color: '#00704A' };
-    }
-    if (name.indexOf('투썸') !== -1 || name.indexOf('twosome') !== -1) {
-        return { class: 'fas fa-coffee', color: '#8B4513' };
-    }
-    if (name.indexOf('이디야') !== -1 || name.indexOf('ediya') !== -1) {
-        return { class: 'fas fa-coffee', color: '#DC143C' };
-    }
-    if (name.indexOf('할리스') !== -1 || name.indexOf('hollys') !== -1) {
-        return { class: 'fas fa-coffee', color: '#228B22' };
-    }
-    if (name.indexOf('파스쿠찌') !== -1 || name.indexOf('pascucci') !== -1) {
-        return { class: 'fas fa-coffee', color: '#8B0000' };
-    }
-    if (name.indexOf('카페베네') !== -1) {
-        return { class: 'fas fa-coffee', color: '#4169E1' };
-    }
-    if (name.indexOf('엔젤리너스') !== -1) {
-        return { class: 'fas fa-coffee', color: '#800080' };
-    }
-    if (name.indexOf('빽다방') !== -1) {
-        return { class: 'fas fa-coffee', color: '#FF6347' };
-    }
-    if (name.indexOf('공차') !== -1) {
-        return { class: 'fas fa-coffee', color: '#FF8C00' };
-    }
-    
-    // 패스트푸드
-    if (name.indexOf('맥도날드') !== -1 || name.indexOf('mcdonald') !== -1) {
-        return { class: 'fas fa-hamburger', color: '#FFC72C' };
-    }
-    if (name.indexOf('버거킹') !== -1 || name.indexOf('burger') !== -1) {
-        return { class: 'fas fa-hamburger', color: '#FF6B35' };
-    }
-    if (name.indexOf('롯데리아') !== -1 || name.indexOf('lotteria') !== -1) {
-        return { class: 'fas fa-hamburger', color: '#E31E24' };
-    }
-    if (name.indexOf('kfc') !== -1 || name.indexOf('치킨') !== -1) {
-        return { class: 'fas fa-drumstick-bite', color: '#E4002B' };
-    }
-    if (name.indexOf('서브웨이') !== -1 || name.indexOf('subway') !== -1) {
-        return { class: 'fas fa-sandwich', color: '#009639' };
-    }
-    
-    // 편의점
-    if (name.indexOf('편의점') !== -1 || name.indexOf('cu') !== -1 || name.indexOf('gs25') !== -1 || name.indexOf('세븐일레븐') !== -1) {
-        return { class: 'fas fa-store-alt', color: '#0066CC' };
-    }
-    
-    // 베이커리
-    if (name.indexOf('파리바게뜨') !== -1 || name.indexOf('뚜레쥬르') !== -1 || name.indexOf('베이커리') !== -1) {
-        return { class: 'fas fa-bread-slice', color: '#8B4513' };
-    }
-    
-    // 아이스크림
-    if (name.indexOf('배스킨라빈스') !== -1 || name.indexOf('baskin') !== -1) {
-        return { class: 'fas fa-ice-cream', color: '#FF69B4' };
-    }
-    
-    // 던킨도너츠
-    if (name.indexOf('던킨') !== -1 || name.indexOf('dunkin') !== -1) {
-        return { class: 'fas fa-cookie', color: '#FF6600' };
-    }
-    
-    // 기본 아이콘
-    return { class: 'fas fa-utensils', color: '#666666' };
+    return `
+        <div>
+            <div class="popup-header">
+                <i class="${typeIcon}"></i> ${restArea['휴게소명'] || '정보없음'}
+            </div>
+            <div class="popup-content">
+                <div class="popup-row">
+                    <div class="popup-label">고속도로:</div>
+                    <div class="popup-value"><strong>${restArea['고속도로'] || '정보없음'}</strong></div>
+                </div>
+                <div class="popup-row">
+                    <div class="popup-label">방향:</div>
+                    <div class="popup-value" style="color: ${directionColor}; font-weight: 600;">
+                        <i class="fas fa-arrow-right"></i> ${restArea['방향'] || '정보없음'}
+                    </div>
+                </div>
+                <div class="popup-row">
+                    <div class="popup-label">종류:</div>
+                    <div class="popup-value">${restArea['휴게소종류'] || '정보없음'}</div>
+                </div>
+                <div class="popup-row">
+                    <div class="popup-label">운영시간:</div>
+                    <div class="popup-value"><i class="fas fa-clock"></i> ${operatingHours}</div>
+                </div>
+                ${franchiseHtml}
+                ${facilitiesText && facilitiesText !== '정보없음' ? `
+                <div class="popup-row">
+                    <div class="popup-label">편의시설:</div>
+                    <div class="popup-value"><i class="fas fa-concierge-bell"></i> ${facilitiesText}</div>
+                </div>
+                ` : ''}
+                ${restArea['전화번호'] && restArea['전화번호'] !== '문의 필요' && restArea['전화번호'] !== '정보없음' ? `
+                <div class="popup-row">
+                    <div class="popup-label">전화:</div>
+                    <div class="popup-value"><i class="fas fa-phone"></i> ${restArea['전화번호']}</div>
+                </div>
+                ` : ''}
+                ${restArea['데이터기준일'] ? `
+                <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; font-size: 10px; color: #999; text-align: center;">
+                    데이터 기준일: ${restArea['데이터기준일']}
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
 }
 
 // 페이지 로드 시 초기화
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('페이지 로드 완료, 초기화 시작...');
-    
+document.addEventListener('DOMContentLoaded', async function() {
     if (typeof L === 'undefined') {
         showFloatingMessage('지도 라이브러리 로딩 실패. 페이지를 새로고침해 주세요.', 'error');
         return;
@@ -1443,53 +1476,58 @@ document.addEventListener('DOMContentLoaded', function() {
     handleResize();
     loadProvinces();
     
-    // Firebase 초기화 확인 및 데이터 로드
-    var checkFirebaseInterval = setInterval(function() {
-        if (window.firestore && firebaseInitialized) {
-            clearInterval(checkFirebaseInterval);
-            console.log('✅ Firebase 연결 확인됨');
+    // Firebase 초기화 대기
+    let waitCount = 0;
+    const maxWait = 50; // 5초 대기
+    
+    const waitForFirebase = setInterval(async () => {
+        waitCount++;
+        
+        if (firebaseInitialized) {
+            clearInterval(waitForFirebase);
             
             // Firestore에서 데이터 로드
-            loadRestAreaDataFromFirestore().then(function() {
-                console.log('✅ 데이터 로드 완료');
-                
-                if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
-                    showRestAreas();
-                }
-            }).catch(function(error) {
-                console.error('❌ 데이터 로드 실패:', error);
-            });
+            await loadRestAreaDataFromFirestore();
             
+            // 나머지 초기화
+            try {
+                const locationDetected = await autoDetectLocationAndZoom();
+                if (!locationDetected) {
+                    selectAdministrativeDivision('전국');
+                }
+            } catch (error) {
+                selectAdministrativeDivision('전국');
+            }
+
+            if (themeStates.restarea && restAreaData && restAreaData.length > 0) {
+                showRestAreas();
+            }
+
             showFloatingMessage('😊 좋아할지도에 오신 것을 환영합니다! 테마를 선택하거나 행정구역을 선택해주세요.', 'success', 4000);
             
             if (window.innerWidth <= 768) {
                 toggleSidebar(); 
             }
-        }
-    }, 100);
-    
-    // 5초 후에도 Firebase가 초기화되지 않으면 샘플 데이터 사용
-    setTimeout(function() {
-        if (!firebaseInitialized) {
-            clearInterval(checkFirebaseInterval);
-            console.warn('⚠️ Firebase 초기화 시간 초과, 샘플 데이터 사용');
             
-            var sampleData = getSampleRestAreaData();
-            restAreaData = sampleData.map(function(row) {
-                return {
-                    '휴게소명': row['휴게소명'],
-                    '고속도로': row['고속도로'],
-                    '위도': parseFloat(row['위도']),
-                    '경도': parseFloat(row['경도']),
-                    '휴게소종류': row['휴게소종류'],
-                    '운영시간': row['운영시간'],
-                    '방향': row['방향'],
-                    '주요편의시설': row['주요편의시설'],
-                    '전화번호': row['전화번호'],
-                    '데이터기준일': row['데이터기준일'],
-                    '프랜차이즈매장': row['프랜차이즈매장']
-                };
-            });
+        } else if (waitCount >= maxWait) {
+            clearInterval(waitForFirebase);
+            showFloatingMessage('⚠️ Firebase 초기화 시간이 초과되었습니다. 샘플 데이터를 사용합니다.', 'error', 5000);
+            
+            // 샘플 데이터로 초기화
+            const sampleData = getSampleRestAreaData();
+            restAreaData = sampleData.map(row => ({
+                '휴게소명': row['휴게소명'],
+                '고속도로': row['고속도로'],
+                '위도': parseFloat(row['위도']),
+                '경도': parseFloat(row['경도']),
+                '휴게소종류': row['휴게소종류'],
+                '운영시간': row['운영시간'],
+                '방향': row['방향'],
+                '주요편의시설': row['주요편의시설'],
+                '전화번호': row['전화번호'],
+                '데이터기준일': row['데이터기준일'],
+                '프랜차이즈매장': row['프랜차이즈매장']
+            }));
             
             selectAdministrativeDivision('전국');
             
@@ -1500,8 +1538,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.innerWidth <= 768) {
                 toggleSidebar(); 
             }
-            
-            showFloatingMessage('⚠️ Firebase 연결 시간 초과로 샘플 데이터를 사용합니다.', 'error', 5000);
         }
-    }, 5000);
+    }, 100);
 });

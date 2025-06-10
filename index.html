@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>좋아할지도 - 전국 여행정보</title>
+    
+    <!-- External Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Enhanced Popup Styles -->
+    <style>
+        /* Rest Area Marker - 75% 크기로 축소 */
+        .rest-area-marker {
+            background: #28a745;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            font-size: 9px;
+        }
+
+        /* Enhanced Popup Styles */
+        .enhanced-popup {
+            min-width: 280px;
+            max-width: 320px;
+        }
+
+        /* 프랜차이즈가 있는 휴게소 헤더 */
+        .popup-header-franchise {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            margin: -12px -16px 12px -16px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 기본 휴게소 헤더 */
+        .popup-header-basic {
+            background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+            color: white;
+            padding: 12px 16px;
+            margin: -12px -16px 12px -16px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            position: relative;
+        }
+
+        /* 프랜차이즈 배지 */
+        .franchise-badge {
+            position: absolute;
+            top: -3px;
+            right: 8px;
+            font-size: 12px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* 프랜차이즈 강조 섹션 */
+        .franchise-highlight {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            border-radius: 8px;
+            padding: 8px !important;
+            margin: 8px 0 !important;
+            border: 1px solid #e1bee7;
+        }
+
+        .franchise-highlight .popup-label {
+            color: #4a148c;
+            font-weight: 700;
+        }
+
+        /* 프랜차이즈 없음 스타일 */
+        .no-franchise {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 6px !important;
+            margin: 6px 0 !important;
+            border: 1px solid #dee2e6;
+        }
+
+        .no-franchise-text {
+            color: #6c757d;
+            font-style: italic;
+            font-size: 11px;
+        }
+
+        /* 개선된 프랜차이즈 리스트 */
+        .franchise-list-enhanced {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            max-height: 100px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+
+        .franchise-item-with-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 8px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+        }
+
+        .franchise-item-with-logo:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .franchise-item-with-logo i {
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .franchise-item-with-logo span {
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        /* 기존 팝업 스타일 개선 */
+        .popup-content {
+            padding: 8px 0;
+        }
+
+        .popup-row {
+            display: flex;
+            margin-bottom: 6px;
+            align-items: flex-start;
+            padding: 2px 0;
+        }
+
+        .popup-label {
+            font-weight: 600;
+            color: #495057;
+            width: 80px;
+            font-size: 11px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .popup-label i {
+            font-size: 10px;
+            width: 12px;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .popup-value {
+            color: #6c757d;
+            font-size: 11px;
+            line-height: 1.4;
+            flex: 1;
+        }
+
+        /* 반응형 팝업 */
+        @media (max-width: 480px) {
+            .enhanced-popup {
+                min-width: 250px;
+                max-width: 280px;
+            }
+            
+            .franchise-list-enhanced {
+                max-height: 80px;
+            }
+            
+            .popup-header-franchise,
+            .popup-header-basic {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+        }
+
+        /* GitHub Pages 환경 표시 */
+        .env-badge {
+            position: fixed;
+            top: 70px;
+            right: 15px;
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            z-index: 1001;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Environment Badge -->
+    <div class="env-badge">
+        <i class="fab fa-github"></i> GitHub Pages
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>
+            <i class="fas fa-heart"></i> 좋아할지도
+        </h1>
+    </div>
+    
+    <!-- Menu Toggle Button -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-map-marked-alt"></i> 지도선택</h3>
+            </div>
+            
+            <div class="category-buttons">
+                <!-- Administrative Divisions Section -->
+                <div class="category-section">
+                    <div class="category-section-title" onclick="toggleCategorySection('administrative-map')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-globe-asia"></i>
+                            전국 행정구역
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="administrative-map-toggle"></i>
+                    </div>
+                    <div class="category-section-content" id="administrative-map-content">
+                        <div class="administrative-container" id="administrative-container">
+                            <!-- 시도별 컨테이너들이 여기에 동적으로 생성됩니다 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Theme Maps Section -->
+                <div class="category-section">
+                    <div class="category-section-title" onclick="toggleCategorySection('theme-maps')">
+                        <div class="category-section-title-left">
+                            <i class="fas fa-layer-group"></i>
+                            테마 지도
+                        </div>
+                        <i class="fas fa-chevron-down category-section-toggle" id="theme-maps-toggle"></i>
+                    </div>
+                    <div class="category-section-content" id="theme-maps-content">
+                        <div class="theme-toggles-container">
+                            <!-- 첫 번째 행 -->
+                            <div class="theme-toggles-row">
+                                <div class="theme-toggle active" id="theme-restarea" onclick="toggleTheme('restarea')">
+                                    <i class="fas fa-coffee"></i>
+                                    <span>휴게소</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-restaurant" onclick="toggleTheme('restaurant')">
+                                    <i class="fas fa-utensils"></i>
+                                    <span>맛집</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-hotel" onclick="toggleTheme('hotel')">
+                                    <i class="fas fa-bed"></i>
+                                    <span>숙박</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-academy" onclick="toggleTheme('academy')">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <span>학원</span>
+                                </div>
+                            </div>
+                            <!-- 두 번째 행 -->
+                            <div class="theme-toggles-row">
+                                <div class="theme-toggle" id="theme-festival" onclick="toggleTheme('festival')">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>축제</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-hotplace" onclick="toggleTheme('hotplace')">
+                                    <i class="fas fa-fire"></i>
+                                    <span>핫플</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-kids" onclick="toggleTheme('kids')">
+                                    <i class="fas fa-child"></i>
+                                    <span>어린이</span>
+                                </div>
+                                <div class="theme-toggle disabled" id="theme-coming" onclick="showComingSoon()">
+                                    <i class="fas fa-plus"></i>
+                                    <span>더보기</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map Container -->
+        <div class="map-container" onclick="handleMapClick()">
+            <div id="map"></div>
+            <div class="map-overlay">
+                <span id="currentCategoryDisplay">지도 영역을 선택해주세요</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Location Button -->
+    <button class="location-btn" onclick="moveToMyLocation()" title="내 위치로 이동">
+        <i class="fas fa-location-arrow"></i>
+    </button>
+    
+    <!-- External Scripts -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Firebase SDK v9 - GitHub Pages 호환 방식 -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Firebase 초기화 스크립트 -->
+    <script>
+        // Firebase 설정 - 실제 프로젝트 정보로 변경하세요
+        const firebaseConfig = {
+          apiKey: "AIzaSyDGebbilVPupgSBNsj1l4BjpxjFEgNjMR8",
+          authDomain: "hanyouji-c6f01.firebaseapp.com",
+          projectId: "hanyouji-c6f01",
+          storageBucket: "hanyouji-c6f01.firebasestorage.app",
+          messagingSenderId: "808499185142",
+          appId: "1:808499185142:web:95cfd6f8163564eeb6f3d7",
+          measurementId: "G-WW8CW16QXL"
+        };
+
+        // Firebase 초기화 (GitHub Pages 호환 방식)
+        let firebaseApp;
+        let firestore;
+        let firebaseInitialized = false;
+
+        try {
+            firebaseApp = firebase.initializeApp(firebaseConfig);
+            firestore = firebase.firestore();
+            firebaseInitialized = true;
+            console.log('✅ Firebase 초기화 완료 (GitHub Pages 환경)');
+            
+            // 전역으로 사용할 수 있도록 설정
+            window.firestore = firestore;
+            window.firebase = firebase;
+            
+        } catch (error) {
+            console.error('❌ Firebase 초기화 실패:', error);
+            firebaseInitialized = false;
+        }
+
+        // Firebase 초기화 완료 신호
+        window.initializeFirebaseApp = function() {
+            console.log('Firebase GitHub Pages 모드로 이미 초기화됨');
+            return firebaseInitialized;
+        };
+    </script>
+    
+    <!-- Custom Script -->
+    <script src="script.js"></script>
+</body>
+</html>

@@ -15,31 +15,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Node.js v18.20.8 오류 메시지에 맞춰 v18로 명시.
+          node-version: '18'
 
       - name: Fetch Tourism Data
         env:
-          TOUR_API_KEY: ${{ secrets.TOUR_API_KEY }} # GitHub Secrets에 저장된 API 키를 환경 변수로 주입
+          TOUR_API_KEY: ${{ secrets.TOUR_API_KEY }}
         run: |
           node scripts/fetch-tour-data.js
-        # 스크립트 실행 중 오류가 발생해도 다음 단계로 진행할 수 있도록 continue-on-error 추가 (선택 사항)
-        # continue-on-error: true 
 
       - name: Commit and push changes
-        # 파일 존재 여부를 확인하고 커밋/푸시를 조건부로 실행
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # data 디렉토리로 이동하여 json 파일이 있는지 확인
-          # find . -maxdepth 1 -name "*.json" 명령으로 현재 디렉터리(data/)에 .json 파일이 있는지 확인
-          cd data
-          if ls *.json 1> /dev/null 2>&1; then
-            echo "JSON files found. Committing changes..."
-            cd .. # 다시 루트 디렉터리로 이동
-            git add data/*.json
+          # data 디렉토리가 없으면 생성 (안전 장치)
+          mkdir -p data
+          
+          # 변경사항이 있는지 확인하고, 있다면 커밋 및 푸시
+          # git add . 이후 git diff --staged --exit-code는 변경사항이 없으면 0, 있으면 1을 반환.
+          # 따라서 변경사항이 있을 때만 커밋을 수행하도록 !를 붙여 조건을 반전.
+          git add data/*.json
+          if ! git diff --staged --quiet; then
+            echo "Changes found. Committing and pushing..."
             git commit -m "Update tour data $(date '+%Y-%m-%d %H:%M:%S')"
             git push
           else
-            echo "No JSON files found in data directory. Skipping commit."
+            echo "No changes to commit. Working tree clean."
           fi

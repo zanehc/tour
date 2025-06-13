@@ -1,4 +1,4 @@
-// 전역 변수
+ㅍ// 전역 변수
 let map;
 let restAreaLayer;
 let currentSelectedProvince = null;

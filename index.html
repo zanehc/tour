@@ -3,38 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>좋아할지도 - 전국 관광정보</title>
+    <title>좋아할지도 - 전국 여행정보</title>
     
-    <!-- External Libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Custom Styles -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Header -->
     <div class="header">
         <h1>
             <i class="fas fa-heart"></i> 좋아할지도
         </h1>
     </div>
     
-    <!-- Menu Toggle Button -->
     <button class="menu-toggle" onclick="toggleSidebar()">
         <i class="fas fa-bars"></i>
     </button>
     
-    <!-- Main Container -->
     <div class="main-container">
-        <!-- Sidebar -->
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h3><i class="fas fa-map-marked-alt"></i> 지도선택</h3>
             </div>
             
             <div class="category-buttons">
-                <!-- Administrative Divisions Section -->
                 <div class="category-section">
                     <div class="category-section-title" onclick="toggleCategorySection('administrative-map')">
                         <div class="category-section-title-left">
@@ -45,12 +38,10 @@
                     </div>
                     <div class="category-section-content" id="administrative-map-content">
                         <div class="administrative-container" id="administrative-container">
-                            <!-- 시도별 컨테이너들이 여기에 동적으로 생성됩니다 -->
-                        </div>
+                            </div>
                     </div>
                 </div>
                 
-                <!-- Theme Maps Section -->
                 <div class="category-section">
                     <div class="category-section-title" onclick="toggleCategorySection('theme-maps')">
                         <div class="category-section-title-left">
@@ -61,60 +52,40 @@
                     </div>
                     <div class="category-section-content" id="theme-maps-content">
                         <div class="theme-toggles-container">
-                            <!-- 첫 번째 행 -->
                             <div class="theme-toggles-row">
-                                <div class="theme-toggle active" id="theme-tourism" onclick="toggleTheme('tourism')">
-                                    <i class="fas fa-map-signs"></i>
-                                    <span>관광객</span>
+                                <div class="theme-toggle active" id="theme-restarea" onclick="toggleTheme('restarea')">
+                                    <i class="fas fa-coffee"></i>
+                                    <span>휴게소</span>
                                 </div>
-                                <div class="theme-toggle" id="theme-local" onclick="toggleTheme('local')">
-                                    <i class="fas fa-home"></i>
-                                    <span>현지인</span>
+                                <div class="theme-toggle" id="theme-restaurant" onclick="toggleTheme('restaurant')">
+                                    <i class="fas fa-utensils"></i>
+                                    <span>맛집</span>
                                 </div>
-                                <div class="theme-toggle" id="theme-foreign" onclick="toggleTheme('foreign')">
-                                    <i class="fas fa-plane"></i>
-                                    <span>외국인</span>
+                                <div class="theme-toggle" id="theme-hotel" onclick="toggleTheme('hotel')">
+                                    <i class="fas fa-bed"></i>
+                                    <span>숙박</span>
                                 </div>
-                                <div class="theme-toggle" id="theme-weekend" onclick="toggleTheme('weekend')">
-                                    <i class="fas fa-calendar-week"></i>
-                                    <span>주말</span>
+                                <div class="theme-toggle" id="theme-academy" onclick="toggleTheme('academy')">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    <span>학원</span>
                                 </div>
                             </div>
-                            <!-- 두 번째 행 -->
                             <div class="theme-toggles-row">
-                                <div class="theme-toggle" id="theme-metro" onclick="toggleTheme('metro')">
-                                    <i class="fas fa-city"></i>
-                                    <span>광역시도</span>
+                                <div class="theme-toggle" id="theme-festival" onclick="toggleTheme('festival')">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>축제</span>
                                 </div>
-                                <div class="theme-toggle" id="theme-district" onclick="toggleTheme('district')">
-                                    <i class="fas fa-building"></i>
-                                    <span>시군구</span>
-                                </div>
-                                <div class="theme-toggle" id="theme-hotspot" onclick="toggleTheme('hotspot')">
+                                <div class="theme-toggle" id="theme-hotplace" onclick="toggleTheme('hotplace')">
                                     <i class="fas fa-fire"></i>
-                                    <span>인기지역</span>
+                                    <span>핫플</span>
+                                </div>
+                                <div class="theme-toggle" id="theme-kids" onclick="toggleTheme('kids')">
+                                    <i class="fas fa-child"></i>
+                                    <span>어린이</span>
                                 </div>
                                 <div class="theme-toggle disabled" id="theme-coming" onclick="showComingSoon()">
                                     <i class="fas fa-plus"></i>
                                     <span>더보기</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- 데이터 정보 표시 -->
-                        <div class="data-info-section">
-                            <div class="data-info-header">
-                                <i class="fas fa-info-circle"></i>
-                                <span>데이터 정보</span>
-                            </div>
-                            <div class="data-info-content">
-                                <div class="data-last-updated">
-                                    <i class="fas fa-clock"></i>
-                                    <span id="lastUpdatedText">데이터 로딩 중...</span>
-                                </div>
-                                <div class="data-source">
-                                    <i class="fas fa-database"></i>
-                                    <span>한국관광공사 빅데이터</span>
                                 </div>
                             </div>
                         </div>
@@ -123,7 +94,6 @@
             </div>
         </div>
         
-        <!-- Map Container -->
         <div class="map-container" onclick="handleMapClick()">
             <div id="map"></div>
             <div class="map-overlay">
@@ -132,15 +102,12 @@
         </div>
     </div>
     
-    <!-- Location Button -->
     <button class="location-btn" onclick="moveToMyLocation()" title="내 위치로 이동">
         <i class="fas fa-location-arrow"></i>
     </button>
     
-    <!-- External Scripts -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
-    <!-- Custom Script -->
     <script src="script.js"></script>
 </body>
 </html>

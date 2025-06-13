@@ -1,0 +1,321 @@
+# =============================================================================
+# TourAPI GitHub Pages 프로젝트 .gitignore
+# =============================================================================
+
+# Node.js 관련
+# -----------------------------------------------------------------------------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.npm
+.yarn-integrity
+
+# 패키지 잠금 파일 (프로젝트에 따라 선택)
+# package-lock.json
+# yarn.lock
+
+# 환경 변수 및 설정 파일
+# -----------------------------------------------------------------------------
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# API 키 및 민감한 정보 (실수로 커밋 방지)
+config/secrets.js
+config/api-keys.js
+*.key
+*.pem
+*.p12
+*.pfx
+
+# 로그 파일
+# -----------------------------------------------------------------------------
+logs/
+*.log
+*.log.*
+log/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 런타임 데이터
+# -----------------------------------------------------------------------------
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# 커버리지 디렉토리 (테스트 커버리지)
+# -----------------------------------------------------------------------------
+coverage/
+*.lcov
+.nyc_output
+
+# 임시 파일 및 캐시
+# -----------------------------------------------------------------------------
+.cache/
+.tmp/
+tmp/
+temp/
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# 의존성 디렉토리
+# -----------------------------------------------------------------------------
+node_modules/
+jspm_packages/
+
+# TypeScript 캐시
+# -----------------------------------------------------------------------------
+*.tsbuildinfo
+
+# ESLint 캐시
+# -----------------------------------------------------------------------------
+.eslintcache
+
+# 선택적: 너무 오래된 데이터 파일 제외 (용량 관리)
+# -----------------------------------------------------------------------------
+# data/ 폴더는 GitHub Actions에서 자동 생성되므로 제외할 수도 있음
+# 하지만 초기 샘플 데이터는 포함하는 것이 좋음
+# data/
+
+# 30일 이전 히스토리 데이터 제외 (파일명 패턴)
+data/*-202[0-3]*.json
+data/backup/
+
+# 대용량 데이터 파일
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 에디터 및 IDE 관련
+# -----------------------------------------------------------------------------
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Eclipse
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# 운영체제 관련
+# -----------------------------------------------------------------------------
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Icon?
+*~
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# 빌드 결과물
+# -----------------------------------------------------------------------------
+dist/
+build/
+out/
+*.tgz
+
+# 정적 사이트 생성기 관련
+# -----------------------------------------------------------------------------
+# Jekyll
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
+# Hugo
+public/
+resources/
+
+# Gatsby
+.cache/
+public/
+
+# Nuxt.js
+.nuxt/
+dist/
+
+# Next.js
+.next/
+out/
+
+# 서버 관련
+# -----------------------------------------------------------------------------
+# Local development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Serverless Framework
+.serverless/
+
+# 데이터베이스
+# -----------------------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+
+# 백업 파일
+# -----------------------------------------------------------------------------
+*.bak
+*.backup
+*.old
+*.orig
+
+# 압축 파일 (대용량 데이터)
+# -----------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# 테스트 관련
+# -----------------------------------------------------------------------------
+# Jest
+coverage/
+*.lcov
+
+# Mocha
+.mocha/
+
+# 프로젝트별 제외 항목
+# -----------------------------------------------------------------------------
+# API 테스트 결과
+test-results/
+api-test-*.json
+
+# 개발용 HTML 파일
+test.html
+debug.html
+playground.html
+
+# 임시 스크립트
+temp-script.js
+debug-*.js
+
+# 문서 임시 파일
+*.docx~
+*.xlsx~
+*.pptx~
+
+# 스크린샷 및 이미지
+screenshots/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+# 단, 프로젝트에 필요한 이미지는 예외 처리
+!assets/images/**
+!docs/images/**
+!public/images/**
+
+# 모니터링 및 로그
+# -----------------------------------------------------------------------------
+monitoring/
+metrics/
+*.metrics
+
+# 성능 분석
+*.prof
+*.profile
+
+# =============================================================================
+# 주의사항
+# =============================================================================
+# 1. API 키가 포함된 파일은 절대 커밋하지 마세요
+# 2. 대용량 데이터 파일은 Git LFS 사용을 고려하세요
+# 3. 민감한 정보는 GitHub Secrets을 활용하세요
+# 4. 프로젝트 진행 시 필요에 따라 이 파일을 업데이트하세요
+
+# =============================================================================
+# 예외 처리 (필요한 파일들 강제 포함)
+# =============================================================================
+# 샘플 데이터는 포함 (초기 실행용)
+!data/sample-*.json
+
+# 설정 템플릿 파일은 포함
+!config/config.template.js
+
+# 문서화 이미지는 포함
+!docs/**/*.png
+!docs/**/*.jpg
+!README-images/**
+
+# GitHub Actions에서 사용하는 스크립트는 포함
+!.github/**

@@ -1,17 +1,13 @@
-# .github/workflows/update-tour-data.yml
 name: Update Tourism Data
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 매일 오전 2시 (KST 11시)
-  workflow_dispatch:     # 수동 실행 가능
+    - cron: '0 2 * * *'   # 매일 오전 2시 (UTC 기준, KST는 오전 11시) 실행
+  workflow_dispatch:     # GitHub Actions 탭에서 수동 실행 가능하도록 설정
 
 jobs:
   fetch-tour-data:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -19,25 +15,22 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-
-      - name: Create data directory
-        run: mkdir -p data
+          node-version: '18' # 데이터 수집 스크립트가 Node.js 기반이므로 Node.js 환경 설정
 
       - name: Fetch Tourism Data
         env:
-          TOUR_API_KEY: ${{ secrets.TOUR_API_KEY }}
+          TOUR_API_KEY: ${{ secrets.TOUR_API_KEY }} # GitHub Secrets에 저장된 API 키를 환경 변수로 주입
         run: |
+          # scripts/fetch-tour-data.js 스크립트 실행
           node scripts/fetch-tour-data.js
 
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
+          # data 디렉토리 내의 모든 JSON 파일 변경사항 추적
           git add data/*.json
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update tour data $(date '+%Y-%m-%d %H:%M:%S')"
-            git push
-          fi
+          # 변경사항이 있을 경우에만 커밋
+          git diff --staged --quiet || git commit -m "Update tour data $(date '+%Y-%m-%d %H:%M:%S')"
+          # 변경사항을 원격 저장소에 푸시
+          git push

@@ -1,0 +1,118 @@
+{
+  "name": "tourapi-github-pages",
+  "version": "1.0.0",
+  "description": "한국관광공사 TourAPI를 활용한 GitHub Pages 관광 정보 지도 서비스",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx http-server -p 8080 -c-1",
+    "dev": "npx http-server -p 3000 -c-1 -o",
+    "build": "echo '정적 사이트이므로 별도 빌드 불필요'",
+    "fetch-data": "node scripts/fetch-tour-data.js",
+    "fetch-metro": "node scripts/fetch-metro-data.js",
+    "fetch-local": "node scripts/fetch-local-data.js",
+    "validate-data": "node scripts/validate-data.js",
+    "generate-sample": "node scripts/generate-sample-data.js",
+    "test-api": "node scripts/test-api-connection.js",
+    "clean-data": "node scripts/clean-old-data.js",
+    "deploy": "echo 'GitHub Pages 자동 배포됨'",
+    "lint": "npx eslint scripts/*.js --fix",
+    "format": "npx prettier --write '**/*.{js,json,md,css,html}'",
+    "serve": "npx serve . -p 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/tourapi-github-pages.git"
+  },
+  "keywords": [
+    "tour",
+    "api",
+    "korea",
+    "tourism",
+    "github-pages",
+    "leaflet",
+    "map",
+    "travel",
+    "data-visualization",
+    "한국관광공사",
+    "관광빅데이터"
+  ],
+  "author": {
+    "name": "Your Name",
+    "email": "your.email@example.com",
+    "url": "https://github.com/your-username"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-username/tourapi-github-pages/issues"
+  },
+  "homepage": "https://your-username.github.io/tourapi-github-pages",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "http-server": "^14.1.1",
+    "serve": "^14.2.0"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "date-fns": "^2.30.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie <= 11"
+  ],
+  "config": {
+    "api": {
+      "baseUrl": "http://apis.data.go.kr/B551011/DataLabService",
+      "timeout": 10000,
+      "retries": 3
+    },
+    "data": {
+      "retention": "30",
+      "maxFiles": 100
+    }
+  },
+  "metadata": {
+    "api": {
+      "provider": "한국관광공사",
+      "service": "관광빅데이터 정보 서비스",
+      "version": "4.1",
+      "endpoints": {
+        "metro": "metcoRegnVisitrDDList",
+        "local": "locgoRegnVisitrDDList"
+      }
+    },
+    "features": [
+      "실시간 관광 데이터 수집",
+      "GitHub Actions 자동화",
+      "Leaflet.js 지도 연동",
+      "반응형 웹 디자인",
+      "PWA 지원 (예정)"
+    ],
+    "lastUpdated": "2024-12-16"
+  },
+  "scripts-description": {
+    "start": "로컬 개발 서버 시작 (포트 8080)",
+    "dev": "개발 모드로 서버 시작 및 브라우저 자동 열기",
+    "fetch-data": "TourAPI에서 모든 데이터 수집",
+    "fetch-metro": "광역 지자체 데이터만 수집",
+    "fetch-local": "기초 지자체 데이터만 수집",
+    "validate-data": "수집된 데이터 유효성 검사",
+    "generate-sample": "테스트용 샘플 데이터 생성",
+    "test-api": "API 연결 상태 테스트",
+    "clean-data": "오래된 데이터 파일 정리",
+    "lint": "JavaScript 코드 품질 검사 및 수정",
+    "format": "코드 포맷팅 (Prettier)",
+    "serve": "정적 파일 서버 실행"
+  },
+  "private": false,
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/your-username"
+  }
+}
